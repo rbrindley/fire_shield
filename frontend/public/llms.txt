@@ -1,0 +1,39 @@
+# Fire Shield
+> A property-specific wildfire decision assistant for Southern Oregon (Rogue Valley).
+> Enter a property address to get a zone-based action plan, fire-resistant plant recommendations,
+> jurisdiction-aware local rules and grants, and inspection-ready guidance — all with cited sources.
+
+## App
+- [Home](https://fire-shield.vercel.app/): Address entry and quick start
+- [Property Overview](https://fire-shield.vercel.app/property): Zone-based action plan for your address
+- [Map View](https://fire-shield.vercel.app/map): Home Ignition Zone rings with clickable zone cards
+- [Plant Search](https://fire-shield.vercel.app/plants): Fire-resistant plant database with zone placement
+- [Chat](https://fire-shield.vercel.app/chat): Ask questions, get cited answers scoped to your jurisdiction
+
+## Plant Database
+- [All Plants](/api/plants/llms.txt): Complete plant database with fire-science traits and zone suitability
+- [Plant Search API](/api/plants/search): Filterable plant search (zone, water, native, deer resistant, sun)
+
+## Zone Actions
+- [Zone Action Framework](/zones/llms.txt): Home Ignition Zone model with evidence-based actions
+- [Zone Actions API](/api/zones): All 17 prioritized actions organized by HIZ layer
+
+## Knowledge Base
+- [Fire Science Evidence](/knowledge/fire-science/llms.txt): Key research findings (IBHS, Camp Fire, Marshall Fire, Almeda)
+- [Local Code and Ordinances](/knowledge/local-code/llms.txt): Jurisdiction-specific requirements (Ashland, Jacksonville, Jackson County, Oregon)
+- [Grants and Incentives](/knowledge/grants/llms.txt): Financial assistance programs (Oregon SB 762, USFS, FEMA)
+
+## MCP Tools (for AI agents)
+- [MCP Server](/mcp/llms.txt): How to connect AI agents via Model Context Protocol
+- Tool: search_plants — search the plant database by zone, water needs, native status, deer resistance
+- Tool: get_zone_actions — get prioritized HIZ actions for an address with jurisdiction-scoped rules
+
+## Agent Web Layer
+- [Full Content Dump](/api/llms-full): Complete plant database + zone actions + key evidence as Markdown
+  (Content-Type: text/markdown; use Accept: text/markdown header on any content page)
+
+## About
+- [How Fire Shield Works](/about/llms.txt): Architecture, data sources, citation methodology
+- Coverage: Ashland, Jacksonville, Medford, Talent, Phoenix, Central Point, Eagle Point, Jackson County, Josephine County, Oregon State
+- Evidence base: IBHS, NFPA, CAL FIRE, Camp Fire studies, Marshall Fire, Almeda Fire, Nature Communications 2025
+- Last updated: 2026-03-28

@@ -1,0 +1,22 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://fire-shield-api.fly.dev"
+  },
+  "headers": [
+    {
+      "source": "/api/llms-full",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/llms.txt",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=86400" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2427 @@
+{
+  "_description": "Living with Fire API - Plant Data Field Guide",
+  "_apiBase": "https://lwf-api.vercel.app/api/v2",
+  "_generated": "2026-03-28T20:42:11.863Z",
+  "_usage": {
+    "plantBaseFields": "GET /plants — returns id, genus, species, subspeciesVarieties, commonName, urls, notes, lastUpdated, primaryImage (with ?includeImages=true)",
+    "plantValues": "GET /plants/{id}/values — returns all attribute values for a plant. Each value has attributeName, rawValue, and resolved.value (human-readable).",
+    "bulkValues": "GET /values/bulk?attributeIds=id1,id2&plantIds=id3,id4&resolve=true — batch fetch with display names. Both params optional. Default limit: 5,000.",
+    "plantsV2": "GET /api/v2/plants?plantIds=id1,id2&attributeIds=id3,id4&includeImages=true — plants with inline values in one call (recommended for batch queries)",
+    "plantDetailV2": "GET /api/v2/plants/{id} — plant + images + all resolved values in one call",
+    "attributeTree": "GET /attributes/hierarchical — this full tree",
+    "gotcha": "rawValue stores IDs (e.g. \"04\"), not display names (e.g. \"Low\"). Use resolved.value for display, rawValue for filtering. On /values/bulk, add ?resolve=true to get display names."
+  },
+  "plantBaseFields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "description": "Unique plant identifier"
+    },
+    {
+      "name": "genus",
+      "type": "text",
+      "description": "Botanical genus, may include synonyms"
+    },
+    {
+      "name": "species",
+      "type": "text",
+      "description": "Species name. \"spp.\" = multiple species"
+    },
+    {
+      "name": "subspeciesVarieties",
+      "type": "text",
+      "description": "Subspecies, varieties, cultivars. Often null"
+    },
+    {
+      "name": "commonName",
+      "type": "text",
+      "description": "Common name for display. Searchable via ?search="
+    },
+    {
+      "name": "urls",
+      "type": "text[]",
+      "description": "Reference URLs (usually Wikipedia)"
+    },
+    {
+      "name": "notes",
+      "type": "text|null",
+      "description": "General notes about the plant. Often null"
+    },
+    {
+      "name": "lastUpdated",
+      "type": "text|null",
+      "description": "ISO timestamp of last update. Often null"
+    },
+    {
+      "name": "primaryImage",
+      "type": "object|null",
+      "description": "Only with ?includeImages=true. Has .url, .type, .source"
+    }
+  ],
+  "valueFields": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "description": "Unique value record identifier"
+    },
+    {
+      "name": "attributeId",
+      "type": "uuid",
+      "description": "ID reference to attribute definition"
+    },
+    {
+      "name": "attributeName",
+      "type": "text",
+      "description": "Human-readable name of this attribute"
+    },
+    {
+      "name": "plantId",
+      "type": "uuid",
+      "description": "The plant this value belongs to"
+    },
+    {
+      "name": "rawValue",
+      "type": "text",
+      "description": "Stored value — often an enum ID, not display name"
+    },
+    {
+      "name": "resolved",
+      "type": "object",
+      "description": "{ value, type, id } — human-readable. Use resolved.value for display"
+    },
+    {
+      "name": "sourceId",
+      "type": "uuid|null",
+      "description": "Which data source provided this value"
+    },
+    {
+      "name": "sourceValue",
+      "type": "text|null",
+      "description": "Raw value string from the original source"
+    },
+    {
+      "name": "urls",
+      "type": "text[]",
+      "description": "Reference URLs for this value. Often null"
+    },
+    {
+      "name": "notes",
+      "type": "text|null",
+      "description": "Additional notes. Often null"
+    },
+    {
+      "name": "metadata",
+      "type": "object|null",
+      "description": "Arbitrary JSON metadata. Often null"
+    }
+  ],
+  "attributeCategories": [
+    {
+      "name": "Flammability",
+      "id": "a8b73bcb-a997-4778-8415-13493a61b40d",
+      "children": [
+        {
+          "name": "Character Score",
+          "id": "70dcbd81-352d-4678-8d8a-f3bd51f1bab6",
+          "valueType": "numeric",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "1-2 = plant 0 (P0)\n3-4 = plant 5-10 (P5)\n5-8 = plant 10+ (P10)\n9-12 = plant 10-30 sparsely (P10S)\n13-16 = plant 30+ (P30)\n17+ = plant 50+ (P50)\n20+ = plant 100+ or (P100)\nNW = don't plant anywhere!\nNA = not applicable",
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"70dcbd81-352d-4678-8d8a-f3bd51f1bab6\" or attributeName: \"Character Score\"",
+          "children": [
+            {
+              "name": "<2 ft tall",
+              "id": "505b81d5-3365-45c4-aba3-d54c2bfbe040",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"505b81d5-3365-45c4-aba3-d54c2bfbe040\" or attributeName: \"<2 ft tall\""
+            },
+            {
+              "name": "All plants",
+              "id": "d83ac908-eaf7-4503-98ef-2b9a607215a6",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"d83ac908-eaf7-4503-98ef-2b9a607215a6\" or attributeName: \"All plants\"",
+              "children": [
+                {
+                  "name": "18",
+                  "id": "44eb0587-a50b-4912-a68a-07bb56458f3f",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Retains dead twigs, leaves, pods, petioles, etc. > 2 1, 2, or 3",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "3"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"44eb0587-a50b-4912-a68a-07bb56458f3f\" or attributeName: \"18\""
+                },
+                {
+                  "name": "20",
+                  "id": "c6e248cc-e70d-4ba3-bbb6-73cc27c333ea",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Leaves have waxy coating 1",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"c6e248cc-e70d-4ba3-bbb6-73cc27c333ea\" or attributeName: \"20\""
+                },
+                {
+                  "name": "22A",
+                  "id": "f1b6ab0e-d627-4dea-829d-c8d9fb64c54c",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Not adapted to the local climate or requires a lot of water to remain alive",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"f1b6ab0e-d627-4dea-829d-c8d9fb64c54c\" or attributeName: \"22A\""
+                },
+                {
+                  "name": "22B",
+                  "id": "fa0f9e5a-9dbd-4651-b8f6-a0f415dd0b77",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Seriously susceptible to disease, pests, or drought 1 or 2",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"fa0f9e5a-9dbd-4651-b8f6-a0f415dd0b77\" or attributeName: \"22B\""
+                },
+                {
+                  "name": "22C",
+                  "id": "e18737dd-fc4c-4fcf-996f-64eb2d70faa2",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Has invasive qualities or can harm natural ecosystems, infrastructure, or humans 1, 2, or 3",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "3"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"e18737dd-fc4c-4fcf-996f-64eb2d70faa2\" or attributeName: \"22C\""
+                },
+                {
+                  "name": "22D",
+                  "id": "3efab83c-62fe-45d8-82c2-133f6e6ef6f3",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Considered a noxious weed in Oregon or on federal invasive species lists 3, 4, or 5",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "3"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "4"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "5"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"3efab83c-62fe-45d8-82c2-133f6e6ef6f3\" or attributeName: \"22D\""
+                },
+                {
+                  "name": "3",
+                  "id": "584a3a55-2204-4b33-a014-7f54ec2cff45",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Resin/volatiles present 1, 2, 3, or 4",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "3"
+                    },
+                    {
+                      "id": "04",
+                      "displayName": "4"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"584a3a55-2204-4b33-a014-7f54ec2cff45\" or attributeName: \"3\""
+                }
+              ]
+            },
+            {
+              "name": "Broadleaf or deciduous shrub",
+              "id": "ff6580ef-36c4-4de6-9889-ef804256f67b",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"ff6580ef-36c4-4de6-9889-ef804256f67b\" or attributeName: \"Broadleaf or deciduous shrub\""
+            },
+            {
+              "name": "Conifer or evergreen tree",
+              "id": "6a5af453-8153-45a3-9c44-96026380bf60",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"6a5af453-8153-45a3-9c44-96026380bf60\" or attributeName: \"Conifer or evergreen tree\""
+            },
+            {
+              "name": "Deciduous trees",
+              "id": "3e52ddf8-f4f2-4c32-8042-69c5cbdb82ae",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"3e52ddf8-f4f2-4c32-8042-69c5cbdb82ae\" or attributeName: \"Deciduous trees\""
+            },
+            {
+              "name": "Evergreen shrub",
+              "id": "e32c3e99-769e-415a-92c2-f1a55de653af",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"e32c3e99-769e-415a-92c2-f1a55de653af\" or attributeName: \"Evergreen shrub\""
+            },
+            {
+              "name": "G, GE, A, B, or PE, PD",
+              "id": "786168ee-7117-40eb-96c2-e6ef296db480",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"786168ee-7117-40eb-96c2-e6ef296db480\" or attributeName: \"G, GE, A, B, or PE, PD\"",
+              "children": [
+                {
+                  "name": "11A",
+                  "id": "ea58e4fe-f309-4c06-a419-bfa560f207d3",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Evergreen or has thin or fine leaves 1 or 2",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"ea58e4fe-f309-4c06-a419-bfa560f207d3\" or attributeName: \"11A\""
+                },
+                {
+                  "name": "11B",
+                  "id": "804db857-72bd-4667-a074-74fa373d2b9c",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Growth: dense 2 moderate 1 spreading 1, 2, or 3",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "3"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"804db857-72bd-4667-a074-74fa373d2b9c\" or attributeName: \"11B\""
+                }
+              ]
+            },
+            {
+              "name": "Graminoid",
+              "id": "ccadc23a-540a-4e98-98e3-e7b6a24b9d4b",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"ccadc23a-540a-4e98-98e3-e7b6a24b9d4b\" or attributeName: \"Graminoid\"",
+              "children": [
+                {
+                  "name": "16",
+                  "id": "9dcadec7-78dd-46ee-b079-2faed89dee0b",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Grass is > 2' tall, retains dead matter, or turns yellow or brown 4, 5, or 6",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "4"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "5"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "6"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"9dcadec7-78dd-46ee-b079-2faed89dee0b\" or attributeName: \"16\""
+                }
+              ]
+            },
+            {
+              "name": "Tree",
+              "id": "3df9f7a5-d059-43e6-80be-8da66f939658",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"3df9f7a5-d059-43e6-80be-8da66f939658\" or attributeName: \"Tree\"",
+              "children": [
+                {
+                  "name": "5",
+                  "id": "35a44caa-9c26-4d26-8c7d-0fe6924ff0e4",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Sheds a lot of needles, leaves, branches, bark, flowers, seed pods, or other matter 1, 2, or 3",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "3"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"35a44caa-9c26-4d26-8c7d-0fe6924ff0e4\" or attributeName: \"5\""
+                }
+              ]
+            },
+            {
+              "name": "Trees & Shrubs",
+              "id": "e2ff3033-87bb-4a90-8d61-d3ab26b465e8",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"e2ff3033-87bb-4a90-8d61-d3ab26b465e8\" or attributeName: \"Trees & Shrubs\"",
+              "children": [
+                {
+                  "name": "11",
+                  "id": "053ec6c0-1330-4608-933b-061d16d58315",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Has thin or fine leaves 1 or 2 Growth form density: dense 2 moderate 1",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"053ec6c0-1330-4608-933b-061d16d58315\" or attributeName: \"11\""
+                },
+                {
+                  "name": "13",
+                  "id": "31de65e9-c9e1-465b-afe6-93b3e28224e4",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Evergreen or has thin or fine leaves 1 or 2 Growth: dense 2 moderate 1 spreading 1, 2, or 3",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "3"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"31de65e9-c9e1-465b-afe6-93b3e28224e4\" or attributeName: \"13\""
+                },
+                {
+                  "name": "7",
+                  "id": "0e4faff5-7cff-4eb9-aac1-e23f2a9bf9ec",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Multiple stems or branches < 4' above ground 1, 2, or 3",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "2"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "3"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"0e4faff5-7cff-4eb9-aac1-e23f2a9bf9ec\" or attributeName: \"7\""
+                },
+                {
+                  "name": "9",
+                  "id": "f2b3dbce-3d74-449e-9c9f-d246198e015a",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Trunk/stem has papery or shreddy bark, or thorns 1",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "1"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"f2b3dbce-3d74-449e-9c9f-d246198e015a\" or attributeName: \"9\""
+                }
+              ]
+            },
+            {
+              "name": "Vine",
+              "id": "5160e10a-ef16-4d07-9a5a-87d3d89306da",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"5160e10a-ef16-4d07-9a5a-87d3d89306da\" or attributeName: \"Vine\"",
+              "children": [
+                {
+                  "name": "15",
+                  "id": "c4214397-b8d9-4a05-9407-9c7bd7cc2e24",
+                  "valueType": "text",
+                  "selectionType": "multi",
+                  "valueUnits": null,
+                  "notes": "Arrows 1, 2, 3, or 4",
+                  "isCalculated": false,
+                  "valuesAllowed": [
+                    {
+                      "id": "01",
+                      "displayName": "2"
+                    },
+                    {
+                      "id": "02",
+                      "displayName": "3"
+                    },
+                    {
+                      "id": "03",
+                      "displayName": "4"
+                    }
+                  ],
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"c4214397-b8d9-4a05-9407-9c7bd7cc2e24\" or attributeName: \"15\""
+                }
+              ]
+            },
+            {
+              "name": "Zone 0-5 plants",
+              "id": "5f11cb61-48a2-4206-8c05-16d8a041d148",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"5f11cb61-48a2-4206-8c05-16d8a041d148\" or attributeName: \"Zone 0-5 plants\""
+            }
+          ]
+        },
+        {
+          "name": "Flammability Notes",
+          "id": "34b147da-613b-4df7-8eb9-76fd10e1d7ae",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"34b147da-613b-4df7-8eb9-76fd10e1d7ae\" or attributeName: \"Flammability Notes\""
+        },
+        {
+          "name": "Home Ignition Zone (HIZ)",
+          "id": "b908b170-70c9-454d-a2ed-d86f98cb3de1",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": "ft",
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "0-5"
+            },
+            {
+              "id": "02",
+              "displayName": "5-10"
+            },
+            {
+              "id": "03",
+              "displayName": "10-30"
+            },
+            {
+              "id": "04",
+              "displayName": "30-100"
+            },
+            {
+              "id": "05",
+              "description": "Idaho ascribes fire-resistant plants to this area. No other source does this.",
+              "displayName": "50-100"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b908b170-70c9-454d-a2ed-d86f98cb3de1\" or attributeName: \"Home Ignition Zone (HIZ)\""
+        },
+        {
+          "name": "Idaho Database--minimum planting distance in feet on flat terrain",
+          "id": "32db8c6c-f842-421d-90e6-e0fd231fc39e",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": "ft",
+          "notes": "Zone 1 is 0-30 ft; fire resistant plants only\nZone 2 is 30-60 ft; reduce plant density\nZone 3 is 60-100 ft; thin & prune existing plants.",
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "idaho-zone": "1",
+              "description": "Flammability score of 10 is the best flammability score possible. Idaho assigns to their Zone 1",
+              "displayName": "10+"
+            },
+            {
+              "id": "02",
+              "idaho-zone": "1",
+              "description": "Scored a 9 - second best. Idaho assigns to their Zone 1",
+              "displayName": "20+"
+            },
+            {
+              "id": "03",
+              "idaho-zone": "1",
+              "description": "Scored an 8. Idaho assigns to their Zone 1",
+              "displayName": "30+"
+            },
+            {
+              "id": "04",
+              "idaho-zone": "2",
+              "description": "Scored a 7. Idaho assigns to their Zone 2",
+              "displayName": "40+"
+            },
+            {
+              "id": "05",
+              "idaho-zone": "2",
+              "description": "Scored 6. Idaho assigns to their Zone 2",
+              "displayName": "50+"
+            },
+            {
+              "id": "06",
+              "idaho-zone": "2",
+              "description": "Scored a 5. Idaho assigns to their Zone 2",
+              "displayName": "60+"
+            },
+            {
+              "id": "07",
+              "idaho-zone": "3",
+              "description": "Scored a 4. Idaho assigns to their Zone 3",
+              "displayName": "70+"
+            },
+            {
+              "id": "08",
+              "idaho-zone": "3",
+              "description": "Scored a 3. Idaho assigns to their Zone 3",
+              "displayName": "80+"
+            },
+            {
+              "id": "09",
+              "idaho-zone": "3",
+              "description": "Scored a 2. Idaho assigns to their Zone 3",
+              "displayName": "90+"
+            },
+            {
+              "id": "10",
+              "idaho-zone": "3",
+              "description": "Scored a 1.",
+              "displayName": "100+"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"32db8c6c-f842-421d-90e6-e0fd231fc39e\" or attributeName: \"Idaho Database--minimum planting distance in feet on flat terrain\""
+        },
+        {
+          "name": "Idaho Zone Tier (Calculated)",
+          "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated from Idaho Database minimum planting distance. Maps Idaho scores to zones.",
+          "isCalculated": true,
+          "valuesAllowed": [
+            {
+              "id": "1",
+              "description": "Zone 1: 0-30 ft - Fire resistant plants only (scores 10+, 20+, 30+)",
+              "displayName": "Tier 1"
+            },
+            {
+              "id": "2",
+              "description": "Zone 2: 30-60 ft - Reduce plant density (scores 40+, 50+, 60+)",
+              "displayName": "Tier 2"
+            },
+            {
+              "id": "3",
+              "description": "Zone 3: 60-100 ft - Thin & prune existing plants (scores 70+, 80+, 90+, 100+)",
+              "displayName": "Tier 3"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"f47ac10b-58cc-4372-a567-0e02b2c3d479\" or attributeName: \"Idaho Zone Tier (Calculated)\""
+        },
+        {
+          "name": "List Choice",
+          "id": "d996587c-383b-4dc6-a23c-239b7de7e47b",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Unsuitable"
+            },
+            {
+              "id": "02",
+              "displayName": "Charisse's list"
+            },
+            {
+              "id": "03",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "04",
+              "displayName": "Consider"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"d996587c-383b-4dc6-a23c-239b7de7e47b\" or attributeName: \"List Choice\""
+        },
+        {
+          "name": "Restrictions",
+          "id": "374a88b1-c8e1-45fd-bb76-b9d5efbfb315",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"374a88b1-c8e1-45fd-bb76-b9d5efbfb315\" or attributeName: \"Restrictions\"",
+          "children": [
+            {
+              "name": "Ashland",
+              "id": "1ddbe951-69ef-4b4b-aa20-75b97cb0207c",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": "NW=Oregon State listed \"noxious weed\"\nWeed=invasive in several states, or nationally/globally listed\nP10=prohibit within 10 ft of buildings\nP30=prohibit within 30 ft of buildings\nP50=prohibit within 50 ft of buildings\nP100=prohibit within 100 ft of buildings\nPH=prohibit because it is harmful to humans, the environment or infrastructure",
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "description": "Oregon State listed \"noxious weed\"",
+                  "displayName": "NW"
+                },
+                {
+                  "id": "02",
+                  "description": "invasive in several states, or nationally/globally listed",
+                  "displayName": "Weed"
+                },
+                {
+                  "id": "03",
+                  "description": "prohibit within 10 ft of buildings",
+                  "displayName": "P10"
+                },
+                {
+                  "id": "04",
+                  "description": "prohibit within 30 ft of buildings",
+                  "displayName": "P30"
+                },
+                {
+                  "id": "05",
+                  "description": "prohibit within 50 ft of buildings",
+                  "displayName": "P50"
+                },
+                {
+                  "id": "06",
+                  "description": "prohibit within 100 ft of buildings",
+                  "displayName": "P100"
+                },
+                {
+                  "id": "07",
+                  "description": "prohibit because it is harmful to humans, the environment or infrastructure",
+                  "displayName": "PH"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"1ddbe951-69ef-4b4b-aa20-75b97cb0207c\" or attributeName: \"Ashland\""
+            }
+          ]
+        },
+        {
+          "name": "Risk Reduction Notes - Best Practices",
+          "id": "2cba404d-a80a-4cfd-abd9-c475237a06ec",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"2cba404d-a80a-4cfd-abd9-c475237a06ec\" or attributeName: \"Risk Reduction Notes - Best Practices\""
+        }
+      ]
+    },
+    {
+      "name": "Growth",
+      "id": "cc64cf77-ebae-4d70-b500-167fe0577eef",
+      "children": [
+        {
+          "name": "Bloom & Flower",
+          "id": "0d93c859-ee40-4c18-8824-02d9cd630316",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"0d93c859-ee40-4c18-8824-02d9cd630316\" or attributeName: \"Bloom & Flower\"",
+          "children": [
+            {
+              "name": "Bloom Time",
+              "id": "ca684872-8841-420e-a85b-b6d247b5b96e",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "displayName": "Spring (Apr-Jun)"
+                },
+                {
+                  "id": "02",
+                  "displayName": "Summer (Jul-Sep)"
+                },
+                {
+                  "id": "03",
+                  "displayName": "Fall (Oct-Dec)"
+                },
+                {
+                  "id": "04",
+                  "displayName": "Winter (Jan-Mar)"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"ca684872-8841-420e-a85b-b6d247b5b96e\" or attributeName: \"Bloom Time\""
+            },
+            {
+              "name": "Flower Color",
+              "id": "86a95833-886a-42bf-b149-c3754e9d913a",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "displayName": "White/Cream/Green"
+                },
+                {
+                  "id": "02",
+                  "displayName": "Yellow/Gold"
+                },
+                {
+                  "id": "03",
+                  "displayName": "Orange"
+                },
+                {
+                  "id": "04",
+                  "displayName": "Pink, Rose, Red, Brown"
+                },
+                {
+                  "id": "05",
+                  "displayName": "Purple/Lavender"
+                },
+                {
+                  "id": "06",
+                  "displayName": "Blue"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"86a95833-886a-42bf-b149-c3754e9d913a\" or attributeName: \"Flower Color\""
+            },
+            {
+              "name": "Flower Smell",
+              "id": "de8e2a8a-0a69-484b-a3e3-097b68403b17",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "displayName": "Fragrant"
+                },
+                {
+                  "id": "02",
+                  "displayName": "Fire volatiles?"
+                },
+                {
+                  "id": "03",
+                  "displayName": "None"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"de8e2a8a-0a69-484b-a3e3-097b68403b17\" or attributeName: \"Flower Smell\""
+            }
+          ]
+        },
+        {
+          "name": "Growth List Choice",
+          "id": "18efd95f-eeb5-418d-be0e-3f855943d200",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree Growth?"
+            },
+            {
+              "id": "03",
+              "displayName": "Consider"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"18efd95f-eeb5-418d-be0e-3f855943d200\" or attributeName: \"Growth List Choice\""
+        },
+        {
+          "name": "Plant Size",
+          "id": "48625aa4-12ab-47fb-b01b-623f7140e88f",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"48625aa4-12ab-47fb-b01b-623f7140e88f\" or attributeName: \"Plant Size\"",
+          "children": [
+            {
+              "name": "Plant Height",
+              "id": "c0f9bad4-f164-4e72-ac47-a1abcfc57d33",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"c0f9bad4-f164-4e72-ac47-a1abcfc57d33\" or attributeName: \"Plant Height\"",
+              "children": [
+                {
+                  "name": "Max Mature Height",
+                  "id": "7692e4d8-9e4d-42b2-bdf3-5b386feeecfb",
+                  "valueType": "numeric",
+                  "selectionType": "single",
+                  "valueUnits": "ft",
+                  "notes": null,
+                  "isCalculated": false,
+                  "valuesAllowed": null,
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"7692e4d8-9e4d-42b2-bdf3-5b386feeecfb\" or attributeName: \"Max Mature Height\""
+                },
+                {
+                  "name": "Min Mature Height",
+                  "id": "5d642c32-436d-4075-bbb9-39794bae07d1",
+                  "valueType": "numeric",
+                  "selectionType": "single",
+                  "valueUnits": "ft",
+                  "notes": null,
+                  "isCalculated": false,
+                  "valuesAllowed": null,
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"5d642c32-436d-4075-bbb9-39794bae07d1\" or attributeName: \"Min Mature Height\""
+                }
+              ]
+            },
+            {
+              "name": "Plant Width",
+              "id": "df410a6a-8827-4908-9083-70e93f4f79bd",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"df410a6a-8827-4908-9083-70e93f4f79bd\" or attributeName: \"Plant Width\"",
+              "children": [
+                {
+                  "name": "Max Mature Width",
+                  "id": "75fdd111-5a66-4319-94b0-1461f7114834",
+                  "valueType": "numeric",
+                  "selectionType": "single",
+                  "valueUnits": "ft",
+                  "notes": null,
+                  "isCalculated": false,
+                  "valuesAllowed": null,
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"75fdd111-5a66-4319-94b0-1461f7114834\" or attributeName: \"Max Mature Width\""
+                },
+                {
+                  "name": "Min Mature Width",
+                  "id": "8643e98d-2970-439f-b93e-b4d3239e289e",
+                  "valueType": "numeric",
+                  "selectionType": "single",
+                  "valueUnits": "ft",
+                  "notes": null,
+                  "isCalculated": false,
+                  "valuesAllowed": null,
+                  "accessVia": "GET /plants/{id}/values — attributeId: \"8643e98d-2970-439f-b93e-b4d3239e289e\" or attributeName: \"Min Mature Width\""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Plant Structure",
+          "id": "b2150aec-75ac-4b4b-aeb1-c339c5da563c",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b2150aec-75ac-4b4b-aeb1-c339c5da563c\" or attributeName: \"Plant Structure\"",
+          "children": [
+            {
+              "name": "Annual herb",
+              "id": "937ecd33-9dad-4cfb-b49c-33b28bdf3037",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"937ecd33-9dad-4cfb-b49c-33b28bdf3037\" or attributeName: \"Annual herb\""
+            },
+            {
+              "name": "Bark",
+              "id": "7a34c095-d01d-494e-8b30-55a8cd386790",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "description": "Peeling/exfoliating",
+                  "displayName": "P"
+                },
+                {
+                  "id": "02",
+                  "description": "Flaky",
+                  "displayName": "F"
+                },
+                {
+                  "id": "03",
+                  "description": "Smooth",
+                  "displayName": "S"
+                },
+                {
+                  "id": "04",
+                  "description": "Spines or thorns",
+                  "displayName": "Sp"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"7a34c095-d01d-494e-8b30-55a8cd386790\" or attributeName: \"Bark\""
+            },
+            {
+              "name": "Biennial",
+              "id": "6056539b-988c-401d-b3ae-25e165afb707",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"6056539b-988c-401d-b3ae-25e165afb707\" or attributeName: \"Biennial\""
+            },
+            {
+              "name": "Chemical content",
+              "id": "9caeaf11-007f-425d-8200-84d4116b8b53",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "description": "Resins and gums",
+                  "displayName": "R"
+                },
+                {
+                  "id": "02",
+                  "description": "Volatile oils",
+                  "displayName": "V"
+                },
+                {
+                  "id": "03",
+                  "description": "Salts",
+                  "displayName": "S"
+                },
+                {
+                  "id": "04",
+                  "description": "Latex",
+                  "displayName": "L"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"9caeaf11-007f-425d-8200-84d4116b8b53\" or attributeName: \"Chemical content\""
+            },
+            {
+              "name": "Deciduous",
+              "id": "fee87734-db6e-4c92-926f-bb606f529b6d",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"fee87734-db6e-4c92-926f-bb606f529b6d\" or attributeName: \"Deciduous\""
+            },
+            {
+              "name": "Evergreen",
+              "id": "f2ed9581-6d15-47ff-93c0-4259bccce5e1",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"f2ed9581-6d15-47ff-93c0-4259bccce5e1\" or attributeName: \"Evergreen\""
+            },
+            {
+              "name": "Graminoid",
+              "id": "f1108fb9-e629-4be3-99c1-bdae47ce0cf7",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"f1108fb9-e629-4be3-99c1-bdae47ce0cf7\" or attributeName: \"Graminoid\""
+            },
+            {
+              "name": "Groundcover",
+              "id": "82f68242-238f-4567-bb47-90da80b5c338",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"82f68242-238f-4567-bb47-90da80b5c338\" or attributeName: \"Groundcover\""
+            },
+            {
+              "name": "Habit/Form",
+              "id": "ce4ce677-b02f-4d7d-b7f3-10052b65c03a",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": "Researchers disagree on whether plant density reduces or increases its flammability. A dense plant has a higher amount of fuel, but an open plant is better aerated. The key is the condition of the leaves and amount of dead matter in the plant.",
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "description": "Arching/drooping",
+                  "displayName": "A"
+                },
+                {
+                  "id": "02",
+                  "description": "Erect",
+                  "displayName": "E"
+                },
+                {
+                  "id": "03",
+                  "description": "Dense (difficult to place your hand in the plant & touch the main stem)",
+                  "displayName": "D"
+                },
+                {
+                  "id": "04",
+                  "description": "Moderate (can't see the main stem but can readily reach it)",
+                  "displayName": "M"
+                },
+                {
+                  "id": "05",
+                  "description": "Multibranched or stems",
+                  "displayName": "Mx"
+                },
+                {
+                  "id": "06",
+                  "description": "Open or sparse (has an open branching pattern)",
+                  "displayName": "O"
+                },
+                {
+                  "id": "07",
+                  "description": "Open or sparse (has an open branching pattern)",
+                  "displayName": "S"
+                },
+                {
+                  "id": "08",
+                  "description": "Spreading",
+                  "displayName": "Sp"
+                },
+                {
+                  "id": "09",
+                  "description": "Clumping",
+                  "displayName": "C"
+                },
+                {
+                  "id": "10",
+                  "description": "Mounding",
+                  "displayName": "Mo"
+                },
+                {
+                  "id": "11",
+                  "description": "Fine texture (feathery overall)",
+                  "displayName": "F"
+                },
+                {
+                  "id": "12",
+                  "description": "W-TBD",
+                  "displayName": "W"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"ce4ce677-b02f-4d7d-b7f3-10052b65c03a\" or attributeName: \"Habit/Form\""
+            },
+            {
+              "name": "Leaf Structure",
+              "id": "eebb5a89-20be-4338-adfb-91c829201909",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "description": "Broadleaf",
+                  "displayName": "B"
+                },
+                {
+                  "id": "02",
+                  "description": "Needle",
+                  "displayName": "N"
+                },
+                {
+                  "id": "03",
+                  "description": "Smallish",
+                  "displayName": "S"
+                },
+                {
+                  "id": "04",
+                  "description": "Feathery",
+                  "displayName": "F"
+                },
+                {
+                  "id": "05",
+                  "description": "Slender",
+                  "displayName": "Sl"
+                },
+                {
+                  "id": "06",
+                  "description": "Thick",
+                  "displayName": "T"
+                },
+                {
+                  "id": "07",
+                  "description": "Thin",
+                  "displayName": "Th"
+                },
+                {
+                  "id": "08",
+                  "description": "Waxy",
+                  "displayName": "W"
+                },
+                {
+                  "id": "09",
+                  "description": "L-TBD",
+                  "displayName": "L"
+                },
+                {
+                  "id": "10",
+                  "description": "G-TBD",
+                  "displayName": "G"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"eebb5a89-20be-4338-adfb-91c829201909\" or attributeName: \"Leaf Structure\""
+            },
+            {
+              "name": "Perennial or Fern",
+              "id": "ee35a2f2-7c12-47ea-8486-bdb34118d639",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"ee35a2f2-7c12-47ea-8486-bdb34118d639\" or attributeName: \"Perennial or Fern\""
+            },
+            {
+              "name": "Semi-evergreen",
+              "id": "eeb535dd-082e-45f9-8799-455903d0362e",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"eeb535dd-082e-45f9-8799-455903d0362e\" or attributeName: \"Semi-evergreen\""
+            },
+            {
+              "name": "Shrub",
+              "id": "ef9be401-1500-471b-bf8f-b11936d6d047",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"ef9be401-1500-471b-bf8f-b11936d6d047\" or attributeName: \"Shrub\""
+            },
+            {
+              "name": "Succulent",
+              "id": "7632a8a3-a9b8-4e35-8e8c-e3f9ccca9c0e",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"7632a8a3-a9b8-4e35-8e8c-e3f9ccca9c0e\" or attributeName: \"Succulent\""
+            },
+            {
+              "name": "Tree",
+              "id": "d5673c20-6fb7-49e3-b7e3-d056caf8d205",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"d5673c20-6fb7-49e3-b7e3-d056caf8d205\" or attributeName: \"Tree\""
+            },
+            {
+              "name": "Vine",
+              "id": "eb566f0c-de5c-4981-9060-8ece5ab85997",
+              "valueType": "boolean",
+              "selectionType": "single",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": null,
+              "accessVia": "GET /plants/{id}/values — attributeId: \"eb566f0c-de5c-4981-9060-8ece5ab85997\" or attributeName: \"Vine\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Environmental Requirements to Thrive",
+      "id": "362695a6-8fe1-44ac-8730-f1921e28025e",
+      "children": [
+        {
+          "name": "Enviro List Choice",
+          "id": "d13b7437-6f18-4da9-8c3b-8d5c377000db",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree on Needs?"
+            },
+            {
+              "id": "03",
+              "displayName": "Consider"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"d13b7437-6f18-4da9-8c3b-8d5c377000db\" or attributeName: \"Enviro List Choice\""
+        },
+        {
+          "name": "Hardiness Zone",
+          "id": "f0b45dc9-ee00-479a-8181-b4fda01f5233",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": "Hardiness Zones 4-9",
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "4"
+            },
+            {
+              "id": "02",
+              "displayName": "5"
+            },
+            {
+              "id": "03",
+              "displayName": "6"
+            },
+            {
+              "id": "04",
+              "displayName": "7"
+            },
+            {
+              "id": "05",
+              "displayName": "8"
+            },
+            {
+              "id": "06",
+              "displayName": "9"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"f0b45dc9-ee00-479a-8181-b4fda01f5233\" or attributeName: \"Hardiness Zone\""
+        },
+        {
+          "name": "Light Needs",
+          "id": "7096a9cc-3435-4e14-a1c4-eb9e95f0850f",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "description": "Prefers full sun 6 or more hours/day",
+              "displayName": "Full Sun"
+            },
+            {
+              "id": "02",
+              "displayName": "Part Sun/Part Shade"
+            },
+            {
+              "id": "03",
+              "description": "Prefers full shade (6 or more hours). Avoid afternoon sun.",
+              "displayName": "Shade"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"7096a9cc-3435-4e14-a1c4-eb9e95f0850f\" or attributeName: \"Light Needs\""
+        }
+      ]
+    },
+    {
+      "name": "Water Requirements",
+      "id": "51f22544-c94b-4f8d-80a4-a249cf9cd281",
+      "children": [
+        {
+          "name": "Drought Tolerant",
+          "id": "af3e70d2-dc9c-4027-a09f-15d7d8b0dd10",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Low"
+            },
+            {
+              "id": "02",
+              "displayName": "Medium"
+            },
+            {
+              "id": "03",
+              "displayName": "High"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"af3e70d2-dc9c-4027-a09f-15d7d8b0dd10\" or attributeName: \"Drought Tolerant\""
+        },
+        {
+          "name": "Drought Tolerant List Choice",
+          "id": "53aedc01-99c6-4115-903b-7db799966427",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree low water?"
+            },
+            {
+              "id": "03",
+              "displayName": "Yes"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"53aedc01-99c6-4115-903b-7db799966427\" or attributeName: \"Drought Tolerant List Choice\""
+        },
+        {
+          "name": "Water Needs",
+          "id": "86a2bdd0-c389-43a5-8454-c634c56f9ee1",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"86a2bdd0-c389-43a5-8454-c634c56f9ee1\" or attributeName: \"Water Needs\"",
+          "children": [
+            {
+              "name": "Water Amount",
+              "id": "d9174148-6563-4f92-9673-01feb6a529ce",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "description": "High water use plants that does well with regular irrigation.",
+                  "displayName": "High"
+                },
+                {
+                  "id": "02",
+                  "description": "Moderate water use plant that does well with supplemental irrigation.",
+                  "displayName": "Moderate"
+                },
+                {
+                  "id": "03",
+                  "description": "Moderate to low water use plant.",
+                  "displayName": "Mod-Low"
+                },
+                {
+                  "id": "04",
+                  "description": "Low water use plant that does well with minimal supplemental irrigation.",
+                  "displayName": "Low"
+                },
+                {
+                  "id": "05",
+                  "description": "Very low water use plant that performs well on dry sites.",
+                  "displayName": "Very Low"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"d9174148-6563-4f92-9673-01feb6a529ce\" or attributeName: \"Water Amount\""
+            },
+            {
+              "name": "Water Season",
+              "id": "5869125b-0b28-4f70-92b9-6e5caa79c1fe",
+              "valueType": "text",
+              "selectionType": "multi",
+              "valueUnits": null,
+              "notes": null,
+              "isCalculated": false,
+              "valuesAllowed": [
+                {
+                  "id": "01",
+                  "displayName": "Winter"
+                },
+                {
+                  "id": "02",
+                  "displayName": "Spring"
+                },
+                {
+                  "id": "03",
+                  "displayName": "Extra in Summer"
+                },
+                {
+                  "id": "04",
+                  "displayName": "Fall"
+                }
+              ],
+              "accessVia": "GET /plants/{id}/values — attributeId: \"5869125b-0b28-4f70-92b9-6e5caa79c1fe\" or attributeName: \"Water Season\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Plant Materials",
+      "id": "c44f3131-fcd6-4fda-bac2-31c7b9a42943",
+      "children": [
+        {
+          "name": "Availability",
+          "id": "94a1c46e-8d0c-4a8b-b951-09ee6b04a43e",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "High"
+            },
+            {
+              "id": "02",
+              "displayName": "Low"
+            },
+            {
+              "id": "03",
+              "displayName": "None"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"94a1c46e-8d0c-4a8b-b951-09ee6b04a43e\" or attributeName: \"Availability\""
+        },
+        {
+          "name": "Ease of Growth",
+          "id": "292e690a-a647-4a4d-b7c3-3839891036c0",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Easy"
+            },
+            {
+              "id": "02",
+              "displayName": "Moderate"
+            },
+            {
+              "id": "03",
+              "displayName": "Difficult"
+            },
+            {
+              "id": "04",
+              "displayName": "Adapted to S. OR"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"292e690a-a647-4a4d-b7c3-3839891036c0\" or attributeName: \"Ease of Growth\""
+        },
+        {
+          "name": "Easy to Grow List Choice",
+          "id": "009ab722-f032-431f-ae53-3b82e5f03ece",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Easy to grow?"
+            },
+            {
+              "id": "03",
+              "displayName": "Yes"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"009ab722-f032-431f-ae53-3b82e5f03ece\" or attributeName: \"Easy to Grow List Choice\""
+        },
+        {
+          "name": "Nurseries",
+          "id": "67ad0f8a-d60d-4894-a5d0-7d04942f8159",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": "Nurseries that Carry this plant.",
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"67ad0f8a-d60d-4894-a5d0-7d04942f8159\" or attributeName: \"Nurseries\""
+        }
+      ]
+    },
+    {
+      "name": "Utility",
+      "id": "e36ffed4-02e2-4c8e-b1d1-34906c7b1477",
+      "children": [
+        {
+          "name": "Border & Screening Use",
+          "id": "3716c310-ee59-4a31-a7c4-ad86dabfc82a",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Border row"
+            },
+            {
+              "id": "02",
+              "displayName": "Low Hedgerow"
+            },
+            {
+              "id": "03",
+              "displayName": "Tall Hedgerow"
+            },
+            {
+              "id": "04",
+              "displayName": "Hedge or Screen"
+            },
+            {
+              "id": "05",
+              "description": "Is it appropriate to promote 'layering'? We don't want to create fuel ladders.",
+              "displayName": "Layering"
+            },
+            {
+              "id": "06",
+              "displayName": "Shade"
+            },
+            {
+              "id": "07",
+              "displayName": "Windbreak"
+            },
+            {
+              "id": "08",
+              "displayName": "Thicket forming"
+            },
+            {
+              "id": "09",
+              "displayName": "Lawn replacement"
+            },
+            {
+              "id": "10",
+              "displayName": "Container Plant"
+            },
+            {
+              "id": "11",
+              "displayName": "Wildflower Mix"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"3716c310-ee59-4a31-a7c4-ad86dabfc82a\" or attributeName: \"Border & Screening Use\""
+        },
+        {
+          "name": "Erosion Control List Choice",
+          "id": "f3e261e1-2dc8-4abb-8665-3b4cf6521fc6",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree erosion?"
+            },
+            {
+              "id": "03",
+              "displayName": "Yes"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"f3e261e1-2dc8-4abb-8665-3b4cf6521fc6\" or attributeName: \"Erosion Control List Choice\""
+        },
+        {
+          "name": "Erosion control",
+          "id": "693acb4c-d593-4168-9a01-6f934933bd8a",
+          "valueType": "boolean",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"693acb4c-d593-4168-9a01-6f934933bd8a\" or attributeName: \"Erosion control\""
+        },
+        {
+          "name": "Landscape Use",
+          "id": "055d0d05-6927-4ed4-b16c-894fe54d77e0",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree on screen?"
+            },
+            {
+              "id": "03",
+              "displayName": "Yes"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"055d0d05-6927-4ed4-b16c-894fe54d77e0\" or attributeName: \"Landscape Use\""
+        },
+        {
+          "name": "Lawn replace",
+          "id": "6e67ce02-b338-40f2-a257-87848ca245ef",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Yes"
+            },
+            {
+              "id": "02",
+              "displayName": "Oregon Flora"
+            },
+            {
+              "id": "03",
+              "displayName": "Consider"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"6e67ce02-b338-40f2-a257-87848ca245ef\" or attributeName: \"Lawn replace\""
+        }
+      ]
+    },
+    {
+      "name": "Nativeness",
+      "id": "5d0586f8-c13c-4b52-9507-0f4a4f1f97f8",
+      "children": [
+        {
+          "name": "Native Status",
+          "id": "716f3d8f-195f-4d16-824b-6dd1e88767a6",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Oregon"
+            },
+            {
+              "id": "02",
+              "displayName": "S. Oregon"
+            },
+            {
+              "id": "03",
+              "displayName": "Naturalized"
+            },
+            {
+              "id": "04",
+              "displayName": "Coastal Oregon"
+            },
+            {
+              "id": "05",
+              "displayName": "California"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"716f3d8f-195f-4d16-824b-6dd1e88767a6\" or attributeName: \"Native Status\""
+        },
+        {
+          "name": "Oregon Native",
+          "id": "d5fb9f61-41dd-4e4e-bc5e-47eb24ecab46",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree natives?"
+            },
+            {
+              "id": "03",
+              "displayName": "Yes"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"d5fb9f61-41dd-4e4e-bc5e-47eb24ecab46\" or attributeName: \"Oregon Native\""
+        }
+      ]
+    },
+    {
+      "name": "Invasiveness",
+      "id": "eb253827-28ef-4fe5-94ba-a299e51bf40b",
+      "children": [
+        {
+          "name": "Invasive",
+          "id": "284b2037-fef8-4b88-abd4-5387a4901109",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree invasive?"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"284b2037-fef8-4b88-abd4-5387a4901109\" or attributeName: \"Invasive\""
+        },
+        {
+          "name": "Invasive (Calculated)",
+          "id": "bacadba3-a4f8-4550-9906-6b5535a619b6",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": "Calculated from Invasive Qualities.",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"bacadba3-a4f8-4550-9906-6b5535a619b6\" or attributeName: \"Invasive (Calculated)\""
+        },
+        {
+          "name": "Invasive Qualities",
+          "id": "a0900c7f-3bb3-4757-9dec-075f718c8f3e",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Invasive"
+            },
+            {
+              "id": "02",
+              "displayName": "Noxious weed"
+            },
+            {
+              "id": "03",
+              "displayName": "Invades wetlands"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"a0900c7f-3bb3-4757-9dec-075f718c8f3e\" or attributeName: \"Invasive Qualities\""
+        }
+      ]
+    },
+    {
+      "name": "Wildlife Values",
+      "id": "eac4b48b-b7d9-4281-a109-4c046d2102ee",
+      "children": [
+        {
+          "name": "Benefits",
+          "id": "ff75e529-5b5c-4461-8191-0382e33a4bd5",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Pollinator friendly"
+            },
+            {
+              "id": "02",
+              "displayName": "Pollinator host"
+            },
+            {
+              "id": "03",
+              "displayName": "Pollinator food"
+            },
+            {
+              "id": "04",
+              "displayName": "Bird shelter"
+            },
+            {
+              "id": "05",
+              "displayName": "Bird food plant"
+            },
+            {
+              "id": "06",
+              "displayName": "Bat"
+            },
+            {
+              "id": "07",
+              "displayName": "Other wildlife"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"ff75e529-5b5c-4461-8191-0382e33a4bd5\" or attributeName: \"Benefits\""
+        },
+        {
+          "name": "Deer Resistance",
+          "id": "ff4c4d0e-35d5-4804-aea3-2a6334ef8cb5",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree on deer resistance?"
+            },
+            {
+              "id": "03",
+              "displayName": "Some"
+            },
+            {
+              "id": "04",
+              "displayName": "High (Usually)"
+            },
+            {
+              "id": "05",
+              "displayName": "Very High"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"ff4c4d0e-35d5-4804-aea3-2a6334ef8cb5\" or attributeName: \"Deer Resistance\""
+        },
+        {
+          "name": "Wildlife Sum",
+          "id": "dab353f5-defe-4f12-9a3a-f2f7d9aef428",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree natives?"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"dab353f5-defe-4f12-9a3a-f2f7d9aef428\" or attributeName: \"Wildlife Sum\""
+        },
+        {
+          "name": "Wildlife Sum (Calculated)",
+          "id": "e8686d2e-fe16-440e-bc70-af4a0328cd05",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"e8686d2e-fe16-440e-bc70-af4a0328cd05\" or attributeName: \"Wildlife Sum (Calculated)\""
+        }
+      ]
+    },
+    {
+      "name": "Edibility",
+      "id": "52c06414-5607-4846-beb5-e4f7cfe6c7f2",
+      "children": [
+        {
+          "name": "Edible Plant",
+          "id": "4afa9fb3-dd3c-4f46-bd99-5b584dc10605",
+          "valueType": "boolean",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"4afa9fb3-dd3c-4f46-bd99-5b584dc10605\" or attributeName: \"Edible Plant\""
+        },
+        {
+          "name": "Edible Plant List Choice",
+          "id": "cba229ad-e004-4ece-ac5b-f2bb3ac0c6a5",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree natives?"
+            },
+            {
+              "id": "03",
+              "displayName": "Consider"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"cba229ad-e004-4ece-ac5b-f2bb3ac0c6a5\" or attributeName: \"Edible Plant List Choice\""
+        }
+      ]
+    },
+    {
+      "name": "Relative Value Matrix",
+      "id": "1f0b604e-8742-49b7-8a35-c3c5c0d0d7f9",
+      "children": [
+        {
+          "name": "Has Availability",
+          "id": "b1000001-0001-4000-8000-000000000011",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Availability value, 0 otherwise. Source: 94a1c46e-8d0c-4a8b-b951-09ee6b04a43e",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000011\" or attributeName: \"Has Availability\""
+        },
+        {
+          "name": "Has Climate Rating",
+          "id": "b1000001-0001-4000-8000-000000000014",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Climate List Choice value, 0 otherwise. Source: 2cd5ffd7-10f1-431d-945e-064bcfd2c195",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000014\" or attributeName: \"Has Climate Rating\""
+        },
+        {
+          "name": "Has Deer Resistance",
+          "id": "b1000001-0001-4000-8000-000000000005",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Deer Resistance value, 0 otherwise. Source: ff4c4d0e-35d5-4804-aea3-2a6334ef8cb5",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000005\" or attributeName: \"Has Deer Resistance\""
+        },
+        {
+          "name": "Has Drought Tolerant",
+          "id": "b1000001-0001-4000-8000-000000000003",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Drought Tolerant value, 0 otherwise. Source: 53aedc01-99c6-4115-903b-7db799966427",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000003\" or attributeName: \"Has Drought Tolerant\""
+        },
+        {
+          "name": "Has Easy to Grow",
+          "id": "b1000001-0001-4000-8000-000000000012",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Easy to Grow value, 0 otherwise. Source: 009ab722-f032-431f-ae53-3b82e5f03ece",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000012\" or attributeName: \"Has Easy to Grow\""
+        },
+        {
+          "name": "Has Edible Plant",
+          "id": "b1000001-0001-4000-8000-000000000013",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Edible Plant value, 0 otherwise. Source: cba229ad-e004-4ece-ac5b-f2bb3ac0c6a5",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000013\" or attributeName: \"Has Edible Plant\""
+        },
+        {
+          "name": "Has Erosion Control",
+          "id": "b1000001-0001-4000-8000-000000000008",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Erosion Control value, 0 otherwise. Source: f3e261e1-2dc8-4abb-8665-3b4cf6521fc6",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000008\" or attributeName: \"Has Erosion Control\""
+        },
+        {
+          "name": "Has Flammability Rating",
+          "id": "b1000001-0001-4000-8000-000000000001",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has List Choice value, 0 otherwise. Source: d996587c-383b-4dc6-a23c-239b7de7e47b",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000001\" or attributeName: \"Has Flammability Rating\""
+        },
+        {
+          "name": "Has Landscape Use",
+          "id": "b1000001-0001-4000-8000-000000000007",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Landscape Use value, 0 otherwise. Source: 055d0d05-6927-4ed4-b16c-894fe54d77e0",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000007\" or attributeName: \"Has Landscape Use\""
+        },
+        {
+          "name": "Has Native Status",
+          "id": "b1000001-0001-4000-8000-000000000004",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Native Status value, 0 otherwise. Source: 716f3d8f-195f-4d16-824b-6dd1e88767a6",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000004\" or attributeName: \"Has Native Status\""
+        },
+        {
+          "name": "Has Soils Rating",
+          "id": "b1000001-0001-4000-8000-000000000010",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Soils List Choice value, 0 otherwise. Source: 1b3ac1d2-3de1-479d-a472-1db3572971e7",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000010\" or attributeName: \"Has Soils Rating\""
+        },
+        {
+          "name": "Has Water Amount",
+          "id": "b1000001-0001-4000-8000-000000000002",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: 1 if plant has Water Amount value, 0 otherwise. Source: d9174148-6563-4f92-9673-01feb6a529ce",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000002\" or attributeName: \"Has Water Amount\""
+        },
+        {
+          "name": "Invasive Component",
+          "id": "b1000001-0001-4000-8000-000000000009",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: Invasive value (0 to -3). Source: bacadba3-a4f8-4550-9906-6b5535a619b6",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000009\" or attributeName: \"Invasive Component\""
+        },
+        {
+          "name": "Value Sum Total",
+          "id": "b1000001-0001-4000-8000-000000000015",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: Sum of all Value Sum components.",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000015\" or attributeName: \"Value Sum Total\""
+        },
+        {
+          "name": "Wildlife Sum Component",
+          "id": "b1000001-0001-4000-8000-000000000006",
+          "valueType": "text",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": "Calculated: Wildlife Sum value (0-6). Source: e8686d2e-fe16-440e-bc70-af4a0328cd05",
+          "isCalculated": true,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"b1000001-0001-4000-8000-000000000006\" or attributeName: \"Wildlife Sum Component\""
+        }
+      ]
+    },
+    {
+      "name": "Climate",
+      "id": "0f9a1e6e-ff83-4d7f-988c-5f7c72ae308b",
+      "children": [
+        {
+          "name": "Climate List Choice",
+          "id": "2cd5ffd7-10f1-431d-945e-064bcfd2c195",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree on climate?"
+            },
+            {
+              "id": "03",
+              "displayName": "Recommend"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"2cd5ffd7-10f1-431d-945e-064bcfd2c195\" or attributeName: \"Climate List Choice\""
+        },
+        {
+          "name": "Climate Vulnerable",
+          "id": "e4fc1511-f6ea-46c7-b2c6-b7869d5dc7e9",
+          "valueType": "boolean",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"e4fc1511-f6ea-46c7-b2c6-b7869d5dc7e9\" or attributeName: \"Climate Vulnerable\""
+        }
+      ]
+    },
+    {
+      "name": "Soils",
+      "id": "6ce8435d-6db3-47cb-8b83-9ffd97156834",
+      "children": [
+        {
+          "name": "Improves Soil Health",
+          "id": "e98c730f-2d20-45bb-9211-6631354944a9",
+          "valueType": "boolean",
+          "selectionType": "single",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": null,
+          "accessVia": "GET /plants/{id}/values — attributeId: \"e98c730f-2d20-45bb-9211-6631354944a9\" or attributeName: \"Improves Soil Health\""
+        },
+        {
+          "name": "Soils List Choice",
+          "id": "1b3ac1d2-3de1-479d-a472-1db3572971e7",
+          "valueType": "text",
+          "selectionType": "multi",
+          "valueUnits": null,
+          "notes": null,
+          "isCalculated": false,
+          "valuesAllowed": [
+            {
+              "id": "01",
+              "displayName": "Conflict"
+            },
+            {
+              "id": "02",
+              "displayName": "Agree on soil?"
+            },
+            {
+              "id": "03",
+              "displayName": "Recommend"
+            }
+          ],
+          "accessVia": "GET /plants/{id}/values — attributeId: \"1b3ac1d2-3de1-479d-a472-1db3572971e7\" or attributeName: \"Soils List Choice\""
+        }
+      ]
+    }
+  ]
+}

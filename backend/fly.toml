@@ -1,0 +1,38 @@
+app = "fire-shield-api"
+primary_region = "sea"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8000"
+  DATA_DIR = "/data"
+  QDRANT_URL = "http://localhost:6333"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 50
+    soft_limit = 25
+
+[[mounts]]
+  source = "fire_shield_data"
+  destination = "/data"
+  initial_size = "1gb"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 6333
+
+  [[services.ports]]
+    port = 6333
+
+[processes]
+  app = "uvicorn app.config.main:app --host 0.0.0.0 --port 8000"
+  qdrant = "qdrant --storage-path /data/qdrant"
