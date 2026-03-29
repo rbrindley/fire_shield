@@ -40,7 +40,7 @@ export default function AdminPlantsPage() {
   const [filterRestricted, setFilterRestricted] = useState(false);
   const [filterNoxious, setFilterNoxious] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
   async function loadSyncLog() {
     const res = await fetch(`${apiUrl}/api/admin/plants/sync-log`, {

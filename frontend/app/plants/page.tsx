@@ -61,7 +61,7 @@ function PlantsInner() {
   async function search() {
     setLoading(true);
     setHasSearched(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
     const params = new URLSearchParams();
     if (query) params.set("query", query);
     if (filterZone) params.set("zone", filterZone);

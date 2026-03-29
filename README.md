@@ -16,11 +16,11 @@ uvicorn app.config.main:app --reload --port 8000
 
 # 3. Start frontend
 cd frontend && npm install
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
-npm run dev   # http://localhost:3000
+echo "NEXT_PUBLIC_API_URL=http://localhost:8100" > .env.local
+npm run dev   # http://localhost:3100
 
 # 4. (Optional) MCP server
-cd mcp_server && npm install && node index.js   # http://localhost:3001
+cd mcp_server && npm install && node index.js   # http://localhost:3101
 ```
 
 ## Documentation

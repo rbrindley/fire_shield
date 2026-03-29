@@ -85,7 +85,7 @@ export default function PropertyOverviewPage({
   const [profileOpen, setProfileOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
   useEffect(() => {
     // Try sessionStorage first

@@ -67,7 +67,7 @@ function MapInner() {
 
     // Fetch from API if profile ID provided
     if (profileId) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
       fetch(`${apiUrl}/api/jurisdiction/profile/${profileId}`)
         .then((r) => r.json())
         .then((data) => {

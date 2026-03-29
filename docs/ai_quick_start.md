@@ -118,25 +118,25 @@ Run these checks once the app is running (see [operations/setup.md](./operations
 
 ```bash
 # 1. Backend health
-curl http://localhost:8000/health
+curl http://localhost:8100/health
 # Expected: {"status": "healthy", "app": "fire_shield", "version": "1.0.0"}
 
 # 2. Zone actions (no API key needed)
-curl "http://localhost:8000/api/zones/top?n=3"
+curl "http://localhost:8100/api/zones/top?n=3"
 # Expected: JSON array of 3 zone actions with action_title, layer, effective_priority
 
 # 3. Plant search
-curl "http://localhost:8000/api/plants/search?native=true&zone=zone_0_5ft&limit=5"
+curl "http://localhost:8100/api/plants/search?native=true&zone=zone_0_5ft&limit=5"
 # Expected: {"plants": [...], "total": N, ...}
 
 # 4. Jurisdiction resolve
-curl -X POST http://localhost:8000/api/jurisdiction/resolve \
+curl -X POST http://localhost:8100/api/jurisdiction/resolve \
   -H "Content-Type: application/json" \
   -d '{"address": "1234 Greensprings Hwy, Ashland, OR 97520"}'
 # Expected: {"jurisdiction_code": "ashland", "lat": ..., "lng": ..., ...}
 
 # 5. RAG query (requires ANTHROPIC_API_KEY + ingested documents)
-curl -X POST http://localhost:8000/api/query/ \
+curl -X POST http://localhost:8100/api/query/ \
   -H "Content-Type: application/json" \
   -d '{"question": "What is defensible space?", "jurisdiction_code": "ashland"}'
 # Expected: {"answer": "...", "citations": [...]}

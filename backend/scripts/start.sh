@@ -23,4 +23,4 @@ print('Migrations done.')
 "
 
 # Start server
-exec uvicorn app.config.main:app --host 0.0.0.0 --port "${PORT:-8000}"
+exec uvicorn app.config.main:app --host 0.0.0.0 --port "${PORT:-8100}"

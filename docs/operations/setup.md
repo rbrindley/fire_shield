@@ -58,7 +58,7 @@ cp .env.example .env
 | `DATABASE_URL` | `data/app.db` | SQLite file path |
 | `QDRANT_HOST` | `localhost` | Qdrant hostname |
 | `QDRANT_PORT` | `6333` | Qdrant port |
-| `CORS_ORIGINS` | `["http://localhost:3000"]` | Frontend origin |
+| `CORS_ORIGINS` | `["http://localhost:3100"]` | Frontend origin |
 | `EMBEDDING_DEVICE` | `auto` | `cuda` if GPU available, else `cpu` |
 | `HF_HOME` | None | Optional HuggingFace model cache dir |
 
@@ -88,7 +88,7 @@ uvicorn app.config.main:app --reload --port 8000
 
 On startup, `init_db()` runs all pending migrations automatically. You'll see migration names printed in the logs.
 
-Verify: `curl http://localhost:8000/health` → `{ "status": "healthy" }`
+Verify: `curl http://localhost:8100/health` → `{ "status": "healthy" }`
 
 ---
 
@@ -102,11 +102,11 @@ npm install
 Create a `.env.local` file:
 
 ```bash
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+echo "NEXT_PUBLIC_API_URL=http://localhost:8100" > .env.local
 ```
 
 ```bash
-npm run dev    # http://localhost:3000
+npm run dev    # http://localhost:3100
 ```
 
 ---
@@ -118,10 +118,10 @@ The MCP server is only needed if using Claude Desktop or an external agent.
 ```bash
 cd mcp_server
 npm install
-node index.js    # http://localhost:3001
+node index.js    # http://localhost:3101
 ```
 
-Configure your MCP client to connect to `http://localhost:3001/sse`.
+Configure your MCP client to connect to `http://localhost:3101/sse`.
 
 ---
 
@@ -129,18 +129,18 @@ Configure your MCP client to connect to `http://localhost:3001/sse`.
 
 ```bash
 # Backend health
-curl http://localhost:8000/health
+curl http://localhost:8100/health
 
 # Zone actions (no API key needed)
-curl http://localhost:8000/api/zones/top?n=3
+curl http://localhost:8100/api/zones/top?n=3
 
 # Jurisdiction resolve (requires backend running)
-curl -X POST http://localhost:8000/api/jurisdiction/resolve \
+curl -X POST http://localhost:8100/api/jurisdiction/resolve \
   -H "Content-Type: application/json" \
   -d '{"address": "1234 Greensprings Hwy, Ashland, OR 97520"}'
 
 # RAG query (requires ANTHROPIC_API_KEY + Qdrant + documents ingested)
-curl -X POST http://localhost:8000/api/query/ \
+curl -X POST http://localhost:8100/api/query/ \
   -H "Content-Type: application/json" \
   -d '{"question": "What is a defensible space?", "jurisdiction_code": "ashland"}'
 ```
@@ -151,14 +151,14 @@ curl -X POST http://localhost:8000/api/query/ \
 
 The RAG chat feature is only useful once documents are ingested. Use the admin UI or the API:
 
-1. Navigate to `http://localhost:3000/admin`
+1. Navigate to `http://localhost:3100/admin`
 2. Enter your `ADMIN_TOKEN` value
 3. Go to the Corpus tab → Add Document
 4. Paste a document URL, set jurisdiction and trust tier, click Ingest
 
 Or via API:
 ```bash
-curl -X POST http://localhost:8000/api/ingest/url \
+curl -X POST http://localhost:8100/api/ingest/url \
   -H "Content-Type: application/json" \
   -b "admin_token=your-admin-token" \
   -d '{
@@ -178,7 +178,7 @@ See [corpus-management.md](./corpus-management.md) for full ingestion guidance.
 Plants come from the Living with Fire API. Run the sync once to populate the plant database:
 
 1. Admin UI → Plants tab → click "Sync Plants"
-2. Or: `curl -X POST http://localhost:8000/api/admin/plants/sync -b "admin_token=your-token"`
+2. Or: `curl -X POST http://localhost:8100/api/admin/plants/sync -b "admin_token=your-token"`
 
 See [plant-sync.md](./plant-sync.md) for details.
 

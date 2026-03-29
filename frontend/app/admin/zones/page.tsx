@@ -42,7 +42,7 @@ export default function AdminZonesPage() {
   const [editValues, setEditValues] = useState<Partial<ZoneAction>>({});
   const [saving, setSaving] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
   async function loadActions() {
     setLoading(true);

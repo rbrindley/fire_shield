@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     lwf_api_base: str = "https://lwf-api.vercel.app/api/v2"
 
     # CORS - frontend origin
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = ["http://localhost:3100"]
 
     @property
     def is_development(self) -> bool:

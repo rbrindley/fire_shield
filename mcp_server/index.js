@@ -12,8 +12,8 @@
  *   node index.js
  *
  * Environment:
- *   FIRE_SHIELD_API_URL  — FastAPI backend URL (default: http://localhost:8000)
- *   MCP_PORT             — Server port (default: 3001)
+ *   FIRE_SHIELD_API_URL  — FastAPI backend URL (default: http://localhost:8100)
+ *   MCP_PORT             — Server port (default: 3101)
  */
 
 const http = require("http");
@@ -21,8 +21,8 @@ const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
 const { SSEServerTransport } = require("@modelcontextprotocol/sdk/server/sse.js");
 const { z } = require("zod");
 
-const API_URL = process.env.FIRE_SHIELD_API_URL || "http://localhost:8000";
-const PORT = parseInt(process.env.MCP_PORT || "3001", 10);
+const API_URL = process.env.FIRE_SHIELD_API_URL || "http://localhost:8100";
+const PORT = parseInt(process.env.MCP_PORT || "3101", 10);
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 

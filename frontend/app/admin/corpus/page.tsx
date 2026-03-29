@@ -64,7 +64,7 @@ export default function CorpusPage() {
   const [ingestMessage, setIngestMessage] = useState("");
   const [chainPreview, setChainPreview] = useState<string[]>([]);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
   async function loadSources() {
     setLoading(true);

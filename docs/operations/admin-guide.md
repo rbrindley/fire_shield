@@ -4,7 +4,7 @@ The admin UI provides a browser-based interface for managing the corpus, plants,
 
 ## Accessing Admin
 
-1. Navigate to `http://localhost:3000/admin` (or your deployed URL)
+1. Navigate to `http://localhost:3100/admin` (or your deployed URL)
 2. Enter your `ADMIN_TOKEN` (set in the backend `.env` as `ADMIN_TOKEN`)
 3. The token is stored as a cookie (`admin_token`) with `SameSite=Strict`
 

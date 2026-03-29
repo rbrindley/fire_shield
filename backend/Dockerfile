@@ -22,6 +22,6 @@ RUN mkdir -p /data
 COPY scripts/start.sh /start.sh
 RUN chmod +x /start.sh
 
-EXPOSE 8000
+EXPOSE 8100
 
 CMD ["/start.sh"]

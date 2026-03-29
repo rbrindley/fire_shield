@@ -21,7 +21,7 @@ The button shows "Syncing…" while running. The sync log below updates automati
 ### Via API
 
 ```bash
-curl -X POST http://localhost:8000/api/admin/plants/sync \
+curl -X POST http://localhost:8100/api/admin/plants/sync \
   -b "admin_token=your-admin-token"
 ```
 
@@ -41,7 +41,7 @@ Response:
 View the 10 most recent sync events:
 
 ```bash
-curl http://localhost:8000/api/admin/plants/sync-log \
+curl http://localhost:8100/api/admin/plants/sync-log \
   -b "admin_token=your-admin-token"
 ```
 
@@ -72,7 +72,7 @@ Plants prohibited or restricted by Ashland ordinance should be flagged so the UI
 
 **API:**
 ```bash
-curl -X PATCH http://localhost:8000/api/admin/plants/lwf-uuid-here/override \
+curl -X PATCH http://localhost:8100/api/admin/plants/lwf-uuid-here/override \
   -H "Content-Type: application/json" \
   -b "admin_token=your-token" \
   -d '{"ashland_restricted": true}'
@@ -83,7 +83,7 @@ curl -X PATCH http://localhost:8000/api/admin/plants/lwf-uuid-here/override \
 Add jurisdiction-specific guidance that doesn't exist in the LWF data:
 
 ```bash
-curl -X PATCH http://localhost:8000/api/admin/plants/lwf-uuid-here/override \
+curl -X PATCH http://localhost:8100/api/admin/plants/lwf-uuid-here/override \
   -H "Content-Type: application/json" \
   -b "admin_token=your-token" \
   -d '{"placement_notes": "Restricted within Ashland city limits per AMC 18.63 — confirm with city before planting."}'

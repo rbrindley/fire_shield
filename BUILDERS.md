@@ -40,24 +40,24 @@ Call Fire Shield's API endpoints from any programming language, curl, or browser
 
 **Search for plants:**
 ```bash
-curl "http://localhost:8000/api/plants/search?zone=5-30ft&native=true&limit=5"
+curl "http://localhost:8100/api/plants/search?zone=5-30ft&native=true&limit=5"
 ```
 
 **Get zone actions:**
 ```bash
-curl "http://localhost:8000/api/zones/"
+curl "http://localhost:8100/api/zones/"
 ```
 
 **Resolve a jurisdiction:**
 ```bash
-curl -X POST "http://localhost:8000/api/jurisdiction/resolve" \
+curl -X POST "http://localhost:8100/api/jurisdiction/resolve" \
   -H "Content-Type: application/json" \
   -d '{"address": "123 Main St, Ashland, OR"}'
 ```
 
 **Ask a question (RAG):**
 ```bash
-curl -X POST "http://localhost:8000/api/query/" \
+curl -X POST "http://localhost:8100/api/query/" \
   -H "Content-Type: application/json" \
   -d '{"question": "What are the top 3 things I should do before fire season?", "profile": "simple"}'
 ```

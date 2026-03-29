@@ -5,9 +5,9 @@ Fire Shield exposes an MCP (Model Context Protocol) server at port 3001. It prov
 ## Connection
 
 **Transport:** SSE (Server-Sent Events)
-**SSE endpoint:** `http://localhost:3001/sse`
-**Message endpoint:** `POST http://localhost:3001/messages?sessionId=<id>`
-**Health check:** `GET http://localhost:3001/health`
+**SSE endpoint:** `http://localhost:3101/sse`
+**Message endpoint:** `POST http://localhost:3101/messages?sessionId=<id>`
+**Health check:** `GET http://localhost:3101/health`
 
 ### Claude Desktop / MCP Client Config
 
@@ -15,7 +15,7 @@ Fire Shield exposes an MCP (Model Context Protocol) server at port 3001. It prov
 {
   "mcpServers": {
     "fire-shield": {
-      "url": "http://localhost:3001/sse",
+      "url": "http://localhost:3101/sse",
       "transport": "sse"
     }
   }
@@ -169,7 +169,7 @@ At least one of `address`, lat/lng pair, or `jurisdiction_code` is required.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FIRE_SHIELD_API_URL` | `http://localhost:8000` | Backend API to proxy requests to |
+| `FIRE_SHIELD_API_URL` | `http://localhost:8100` | Backend API to proxy requests to |
 | `MCP_PORT` | `3001` | Port to listen on |
 
 ---
@@ -179,7 +179,7 @@ At least one of `address`, lat/lng pair, or `jurisdiction_code` is required.
 ```bash
 cd mcp_server
 node index.js
-# Server listening on http://localhost:3001
+# Server listening on http://localhost:3101
 ```
 
 ---

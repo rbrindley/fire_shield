@@ -5,12 +5,12 @@ primary_region = "sea"
   dockerfile = "Dockerfile"
 
 [env]
-  PORT = "8000"
+  PORT = "8100"
   DATA_DIR = "/data"
   QDRANT_URL = "http://localhost:6333"
 
 [http_service]
-  internal_port = 8000
+  internal_port = 8100
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
@@ -34,5 +34,5 @@ primary_region = "sea"
     port = 6333
 
 [processes]
-  app = "uvicorn app.config.main:app --host 0.0.0.0 --port 8000"
+  app = "uvicorn app.config.main:app --host 0.0.0.0 --port 8100"
   qdrant = "qdrant --storage-path /data/qdrant"

@@ -54,7 +54,7 @@ A document tagged `ashland` is returned for all `ashland` queries, and also for 
 
 ```bash
 # Ingest from URL
-curl -X POST http://localhost:8000/api/ingest/url \
+curl -X POST http://localhost:8100/api/ingest/url \
   -H "Content-Type: application/json" \
   -b "admin_token=your-token" \
   -d '{
@@ -66,13 +66,13 @@ curl -X POST http://localhost:8000/api/ingest/url \
   }'
 
 # Check status
-curl http://localhost:8000/api/ingest/status/1 -b "admin_token=your-token"
+curl http://localhost:8100/api/ingest/status/1 -b "admin_token=your-token"
 ```
 
 ### Via PDF Upload
 
 ```bash
-curl -X POST http://localhost:8000/api/ingest/upload \
+curl -X POST http://localhost:8100/api/ingest/upload \
   -b "admin_token=your-token" \
   -F "file=@/path/to/document.pdf" \
   -F "title=Jackson County Fire District Guidelines" \
@@ -91,7 +91,7 @@ To update an ingested document's metadata (jurisdiction, trust tier, status):
 
 **API:**
 ```bash
-curl -X PATCH http://localhost:8000/api/admin/corpus/42 \
+curl -X PATCH http://localhost:8100/api/admin/corpus/42 \
   -H "Content-Type: application/json" \
   -b "admin_token=your-token" \
   -d '{"trust_tier": 2, "status": "active"}'
@@ -112,7 +112,7 @@ Set a document's status to `stale` to suppress it from retrieval while preservin
 
 **API:**
 ```bash
-curl -X PATCH http://localhost:8000/api/admin/corpus/42 \
+curl -X PATCH http://localhost:8100/api/admin/corpus/42 \
   -H "Content-Type: application/json" \
   -b "admin_token=your-token" \
   -d '{"status": "stale"}'
@@ -120,7 +120,7 @@ curl -X PATCH http://localhost:8000/api/admin/corpus/42 \
 
 To permanently remove and delete chunks (also removes vectors from Qdrant):
 ```bash
-curl -X DELETE http://localhost:8000/api/admin/corpus/42 \
+curl -X DELETE http://localhost:8100/api/admin/corpus/42 \
   -b "admin_token=your-token"
 ```
 

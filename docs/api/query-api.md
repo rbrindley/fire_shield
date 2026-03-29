@@ -142,7 +142,7 @@ When no relevant chunks are found, the endpoint returns 200 with a fallback answ
 ## Example: cURL
 
 ```bash
-curl -X POST http://localhost:8000/api/query/ \
+curl -X POST http://localhost:8100/api/query/ \
   -H "Content-Type: application/json" \
   -d '{
     "question": "How close to my house should I keep wood piles?",
@@ -154,7 +154,7 @@ curl -X POST http://localhost:8000/api/query/ \
 ## Example: Agent Mode
 
 ```bash
-curl -X POST http://localhost:8000/api/query/ \
+curl -X POST http://localhost:8100/api/query/ \
   -H "Content-Type: application/json" \
   -d '{
     "question": "What are the top 3 most urgent actions for a wood-framed home in fire season?",

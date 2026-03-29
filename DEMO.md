@@ -12,11 +12,11 @@ docker run -p 6333:6333 qdrant/qdrant
 
 # Terminal 3: Frontend
 cd frontend
-npm run dev   # http://localhost:3000
+npm run dev   # http://localhost:3100
 
 # Terminal 4: MCP server
 cd mcp_server
-node index.js   # http://localhost:3001
+node index.js   # http://localhost:3101
 ```
 
 ---
@@ -25,7 +25,7 @@ node index.js   # http://localhost:3001
 
 ### 1. Address Entry → Property Overview (2 min)
 
-1. Open http://localhost:3000
+1. Open http://localhost:3100
 2. Type: **1234 Greensprings Hwy, Ashland, OR 97520**
 3. Submit → watch geocode + jurisdiction resolve
 4. Show property overview page:
@@ -81,7 +81,7 @@ node index.js   # http://localhost:3001
 
 ### 6. Admin UI (2 min)
 
-Navigate to http://localhost:3000/admin
+Navigate to http://localhost:3100/admin
 
 1. **Login** with admin token (set in `.env`)
 2. **Corpus tab**: show source list with jurisdiction/trust-tier badges
@@ -97,7 +97,7 @@ Navigate to http://localhost:3000/admin
 
 ```bash
 # Test get_zone_actions tool
-curl -X POST http://localhost:3001/messages \
+curl -X POST http://localhost:3101/messages \
   -H "Content-Type: application/json" \
   -d '{
     "tool": "get_zone_actions",
@@ -113,10 +113,10 @@ Show: structured JSON with `jurisdiction_note`, per-zone actions, citations.
 
 ```bash
 # llms.txt
-curl http://localhost:3000/llms.txt
+curl http://localhost:3100/llms.txt
 
 # Full markdown dump (for AI agents)
-curl -H "Accept: text/markdown" http://localhost:3000/plants
+curl -H "Accept: text/markdown" http://localhost:3100/plants
 # → redirects to /api/llms-full → returns plants + zone actions as Markdown
 ```
 

@@ -57,7 +57,7 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
 
   // Fetch zone actions
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
     fetch(`${apiUrl}/api/zones/`)
       .then((r) => r.json())
       .then(setZoneData)

@@ -40,7 +40,7 @@ function ChatInner() {
   const [memoryCount, setMemoryCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
   // Load jurisdiction from stored property + fetch memory count
   useEffect(() => {

@@ -24,7 +24,7 @@ export default function Home() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/jurisdiction/resolve`,
+        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100"}/api/jurisdiction/resolve`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
