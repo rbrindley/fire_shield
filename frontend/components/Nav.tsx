@@ -82,8 +82,7 @@ export default function Nav() {
     router.push("/");
   }
 
-  // Hide nav on landing page
-  if (pathname === "/") return null;
+  // Nav is visible on all pages including landing
 
   return (
     <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl">

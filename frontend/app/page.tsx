@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-const SAMPLE_QUESTIONS = [
-  "What should I do first to protect my home?",
-  "What can I plant near my house?",
-  "Am I eligible for grants?",
-  "Show me my defensible space zones",
+const HELPER_EXAMPLES = [
+  "What are the biggest bang-for-the-buck protection steps?",
+  "What can I plant next to my house?",
+  "I want to add a porch. What does city fire code say about that?",
+  "Who can help me assess my home\u2019s fire risk?",
 ];
 
 function looksLikeAddress(input: string): boolean {
@@ -90,16 +90,6 @@ export default function Home() {
     }
   }
 
-  function handleSample(q: string) {
-    const loggedIn = sessionStorage.getItem("fs_logged_in");
-    if (!loggedIn) {
-      setPendingAction({ type: "question", value: q });
-      setShowLoginModal(true);
-      return;
-    }
-    router.push(`/main?q=${encodeURIComponent(q)}`);
-  }
-
   async function handleLoginModalChoice(choice: "login" | "guest") {
     if (choice === "login") {
       // Fake test user login: set logged-in flag
@@ -119,31 +109,31 @@ export default function Home() {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center px-4 bg-surface overflow-hidden">
+    <div className="relative min-h-[calc(100vh-3.5rem)] flex flex-col items-center justify-center px-4 bg-surface overflow-hidden">
       {/* Background decorations */}
       <div className="pointer-events-none absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-secondary-container opacity-20 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-primary-container opacity-30 blur-[100px]" />
 
-      <div className="relative flex flex-col items-center space-y-10 max-w-2xl w-full text-center">
-        {/* Logo */}
+      <div className="relative flex flex-col items-center space-y-8 max-w-2xl w-full text-center">
+        {/* Headline above logo */}
+        <p className="text-sm md:text-base text-on-surface-variant font-headline font-semibold tracking-wide uppercase">
+          AI Powered Fire Protection
+        </p>
+
+        {/* V3 Logo — large */}
         <Image
-          src="/logo.png"
+          src="/logo-v3.png"
           alt="Fire Shield"
-          width={320}
-          height={80}
-          className="h-16 md:h-20 w-auto"
+          width={600}
+          height={600}
+          className="w-48 md:w-64 h-auto"
           priority
         />
 
-        {/* Tagline */}
-        <p className="text-lg md:text-xl text-on-surface-variant leading-relaxed max-w-xl font-body">
-          Personalized wildfire protection for your property.
-          Ask anything or enter your address to get started.
-        </p>
-
-        {/* Prompt input */}
+        {/* Prompt area with helper text */}
         <form onSubmit={handleSubmit} className="w-full">
-          <div className="bg-surface-container-lowest p-2 md:p-3 rounded-2xl shadow-[0_24px_48px_-12px_rgba(27,28,26,0.08)] ring-1 ring-outline-variant/15">
+          <div className="bg-surface-container-lowest p-4 md:p-6 rounded-2xl shadow-[0_24px_48px_-12px_rgba(27,28,26,0.08)] ring-1 ring-outline-variant/15 space-y-4">
+            {/* Input row */}
             <div className="flex flex-col md:flex-row items-stretch gap-2">
               <div className="flex-1 relative flex items-center">
                 <svg className="absolute left-4 w-5 h-5 text-outline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -167,27 +157,32 @@ export default function Home() {
                 {loading ? "Locating\u2026" : "Send \u2192"}
               </button>
             </div>
+
+            {/* Helper text */}
+            <div className="text-left px-2">
+              <p className="text-sm text-on-surface-variant font-body leading-relaxed">
+                Add an address for specific recommendations or ask questions like:
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {HELPER_EXAMPLES.map((example) => (
+                  <li key={example}>
+                    <button
+                      type="button"
+                      onClick={() => setInput(example)}
+                      className="text-sm text-on-surface-variant/80 font-body hover:text-primary transition-colors text-left"
+                    >
+                      <span className="text-outline mr-2">&ndash;</span>
+                      {example}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           {error && (
             <p className="mt-3 text-sm text-error text-center">{error}</p>
           )}
         </form>
-
-        {/* Sample questions */}
-        <div className="space-y-2">
-          <p className="text-xs text-outline uppercase tracking-widest font-headline font-semibold">Try asking</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {SAMPLE_QUESTIONS.map((q) => (
-              <button
-                key={q}
-                onClick={() => handleSample(q)}
-                className="px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant font-body text-sm hover:bg-surface-container-high hover:text-primary transition-all border border-outline-variant/20"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Login modal */}
