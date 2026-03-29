@@ -12,7 +12,8 @@ settings = get_settings()
 
 
 WILDFIRE_SYSTEM_PROMPT = """You are a wildfire preparedness advisor for Southern Oregon's Rogue Valley.
-Answer questions using ONLY the provided source chunks. Be specific to the user's jurisdiction.
+{source_constraint}
+Be specific to the user's jurisdiction.
 
 JURISDICTION CONTEXT:
 {jurisdiction_context}
@@ -104,7 +105,15 @@ async def generate_answer(
             + "\n"
         )
 
+    source_constraint = (
+        "For wildfire-specific questions, answer using the provided source chunks and cite them. "
+        "For questions about teaching, AI agents, coding, or the Fire Shield app itself, use your general knowledge and the app context in your instructions."
+        if profile == "teacher"
+        else "Answer questions using ONLY the provided source chunks."
+    )
+
     system_prompt = WILDFIRE_SYSTEM_PROMPT.format(
+        source_constraint=source_constraint,
         jurisdiction_context=jurisdiction_context,
         profile_instructions=profile_instructions,
         chunks_text=chunks_text,
