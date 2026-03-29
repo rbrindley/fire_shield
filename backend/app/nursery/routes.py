@@ -11,7 +11,8 @@ router = APIRouter()
 async def nursery_search(
     plant: str,
     scientific_name: str | None = None,
+    quantity: int = 1,
 ):
     """Search Nature Hills Nursery for a plant by name."""
-    result = await search_nursery(plant, scientific_name)
+    result = await search_nursery(plant, scientific_name, quantity=quantity)
     return result

@@ -33,6 +33,7 @@ interface IntentClassification {
   primary_intent: string;
   confidence: number;
   resource_tab: string;
+  tab_context?: { search_query?: string; zone_filter?: string } | null;
 }
 
 interface ResourceLink {
@@ -266,11 +267,13 @@ export default function ChatPanel({ initialQuestion, profileId, profile, onQuery
   }
 
   function renderAnswer(text: string, citations: Citation[] = []) {
-    const parts = text.split(/(\[\d+\])/g);
+    // Split on citations and URLs
+    const parts = text.split(/(\[\d+\]|https?:\/\/[^\s)\]]+)/g);
     return parts.map((part, i) => {
-      const match = part.match(/^\[(\d+)\]$/);
-      if (match) {
-        const num = parseInt(match[1]);
+      // Citation reference
+      const citMatch = part.match(/^\[(\d+)\]$/);
+      if (citMatch) {
+        const num = parseInt(citMatch[1]);
         const citation = citations.find((c) => c.ref_number === num);
         if (citation) {
           return (
@@ -295,6 +298,26 @@ export default function ChatPanel({ initialQuestion, profileId, profile, onQuery
             </button>
           );
         }
+      }
+      // URL — render as clickable link
+      if (/^https?:\/\//.test(part)) {
+        let label = part;
+        try {
+          const u = new URL(part);
+          const path = u.pathname.replace(/\/$/, "");
+          label = u.hostname.replace("www.", "") + (path && path !== "/" ? path : "");
+        } catch { /* use raw URL */ }
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline underline-offset-2 hover:opacity-80 break-all"
+          >
+            {label}
+          </a>
+        );
       }
       return <span key={i}>{part}</span>;
     });

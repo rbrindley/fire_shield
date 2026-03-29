@@ -30,12 +30,20 @@ class Citation(BaseModel):
     source_url: str | None = None
 
 
+class TabContext(BaseModel):
+    """Optional context to pass to the activated tab (e.g., search terms, filters)."""
+
+    search_query: str | None = None
+    zone_filter: str | None = None  # e.g. "zone_0_5ft"
+
+
 class IntentClassification(BaseModel):
     """Classified intent from the user's question."""
 
     primary_intent: Literal["map", "plants", "zones", "build", "property", "general"]
     confidence: float
     resource_tab: str
+    tab_context: TabContext | None = None
 
 
 class ResourceLink(BaseModel):

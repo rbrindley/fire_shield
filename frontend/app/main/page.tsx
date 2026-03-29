@@ -44,6 +44,7 @@ function MainInner() {
   const [jurisdictionCode, setJurisdictionCode] = useState<string | undefined>();
   const [areaType, setAreaType] = useState<"urban" | "rural" | undefined>();
   const [neighborDistance, setNeighborDistance] = useState<number | undefined>();
+  const [tabContext, setTabContext] = useState<{ search_query?: string; zone_filter?: string } | null>(null);
 
   // Load property from sessionStorage on mount
   useEffect(() => {
@@ -79,6 +80,7 @@ function MainInner() {
       const tab = response.intent.resource_tab;
       setActiveTab(tab);
       setVisitedTabs((prev) => new Set(prev).add(tab));
+      setTabContext(response.intent.tab_context ?? null);
     }
     if (response.resource_links && response.resource_links.length > 0) {
       setResourceLinks(response.resource_links);
@@ -153,6 +155,7 @@ function MainInner() {
             lng={lng}
             profileId={profileId}
             jurisdictionCode={jurisdictionCode}
+            tabContext={tabContext}
           />
         </div>
       </div>

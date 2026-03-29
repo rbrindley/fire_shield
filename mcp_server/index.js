@@ -216,6 +216,7 @@ server.tool(
           type: "text",
           text: JSON.stringify({
             plant_name: data.plant_name,
+            nursery: data.nursery || "Succulents Box",
             search_url: data.search_url,
             products: data.products || [],
             quantity: data.quantity || params.quantity || 1,

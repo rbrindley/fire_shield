@@ -66,11 +66,17 @@ const ZONE_LABELS: Record<string, string> = {
 };
 
 
-interface PlantsTabProps {
-  jurisdictionCode?: string;
+interface TabContext {
+  search_query?: string;
+  zone_filter?: string;
 }
 
-export default function PlantsTab({ jurisdictionCode }: PlantsTabProps) {
+interface PlantsTabProps {
+  jurisdictionCode?: string;
+  tabContext?: TabContext | null;
+}
+
+export default function PlantsTab({ jurisdictionCode, tabContext }: PlantsTabProps) {
   const [query, setQuery] = useState("");
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(false);
@@ -78,6 +84,7 @@ export default function PlantsTab({ jurisdictionCode }: PlantsTabProps) {
   const [filterNative, setFilterNative] = useState(false);
   const [shortlist, setShortlist] = useState<ShortlistedPlant[]>([]);
   const [showShortlist, setShowShortlist] = useState(false);
+  const [appliedContext, setAppliedContext] = useState<string | null>(null);
 
   function addToShortlist(plant: Plant) {
     if (shortlist.some((p) => p.id === plant.id)) return;
@@ -90,11 +97,13 @@ export default function PlantsTab({ jurisdictionCode }: PlantsTabProps) {
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
-  const search = useCallback(async () => {
+  const search = useCallback(async (searchQuery?: string, zoneFilter?: string) => {
+    const q = searchQuery ?? query;
+    const z = zoneFilter ?? filterZone;
     setLoading(true);
     const params = new URLSearchParams();
-    if (query) params.set("query", query);
-    if (filterZone) params.set("zone", filterZone);
+    if (q) params.set("query", q);
+    if (z) params.set("zone", z);
     if (filterNative) params.set("native", "true");
     params.set("limit", "20");
 
@@ -108,6 +117,19 @@ export default function PlantsTab({ jurisdictionCode }: PlantsTabProps) {
       setLoading(false);
     }
   }, [apiUrl, query, filterZone, filterNative]);
+
+  // Apply tab context from classifier (auto-search)
+  useEffect(() => {
+    if (tabContext) {
+      const contextKey = `${tabContext.search_query ?? ""}|${tabContext.zone_filter ?? ""}`;
+      if (contextKey !== appliedContext && (tabContext.search_query || tabContext.zone_filter)) {
+        if (tabContext.search_query) setQuery(tabContext.search_query);
+        if (tabContext.zone_filter) setFilterZone(tabContext.zone_filter);
+        setAppliedContext(contextKey);
+        search(tabContext.search_query ?? "", tabContext.zone_filter ?? "");
+      }
+    }
+  }, [tabContext]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     search();
@@ -171,7 +193,7 @@ export default function PlantsTab({ jurisdictionCode }: PlantsTabProps) {
           className="flex-1 px-3 py-2 rounded-lg bg-surface-container-low text-sm text-on-surface placeholder:text-outline/60 font-body focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
         <button
-          onClick={search}
+          onClick={() => search()}
           className="px-4 py-2 bg-secondary text-on-secondary rounded-lg text-sm font-headline hover:opacity-90"
         >
           Search

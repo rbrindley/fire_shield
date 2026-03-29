@@ -5,7 +5,7 @@ import re
 from typing import Literal
 
 from app.config import get_settings
-from app.models.query import Citation, IntentClassification, ResourceLink
+from app.models.query import Citation, IntentClassification, ResourceLink, TabContext
 from app.rag.profiles import get_profile_instructions
 
 settings = get_settings()
@@ -33,7 +33,7 @@ SOURCES:
 
 INTENT CLASSIFICATION:
 After your answer, on a new line emit exactly one JSON block fenced like this:
-<!-- INTENT_JSON: {{"intent": "...", "confidence": 0.0, "resource_suggestions": [...], "address_mentioned": null}} -->
+<!-- INTENT_JSON: {{"intent": "...", "confidence": 0.0, "resource_suggestions": [...], "address_mentioned": null, "tab_context": null}} -->
 - intent: one of "map", "plants", "zones", "build", "property", "general"
   - "map" = user wants to see their property map, zone rings, or satellite view
   - "plants" = user asks about fire-resistant plants, landscaping, vegetation
@@ -44,6 +44,7 @@ After your answer, on a new line emit exactly one JSON block fenced like this:
 - confidence: 0.0 to 1.0
 - resource_suggestions: array of 2-4 objects with "title", "description", "intent_tag" fields. These are contextual next-step links shown to the user. Tailor them to the specific question — e.g. if the user asks about roof vents, suggest "Vent screening guide" (zones) and "Fire-resistant roofing plants" (plants), NOT generic links. Each object needs: "title" (short action label), "description" (1 sentence why it's relevant to THIS question), "intent_tag" (one of: map, plants, zones, build, general). Only suggest what's genuinely useful as a follow-up.
 - address_mentioned: If the user mentions a street address, city+state, or coordinates in their message, extract it verbatim as a string. Otherwise null. Examples: "123 Oak St, Ashland OR", "42.1945, -122.7095". Do NOT fabricate addresses.
+- tab_context: If intent is "plants", extract the plant name/type as "search_query" and the zone as "zone_filter" (one of: zone_0_5ft, zone_5_30ft, zone_30_100ft, zone_100ft_plus) based on distance mentioned. If intent is "zones", extract the zone layer as "zone_filter". Otherwise null. Examples: {{"search_query": "aloe", "zone_filter": "zone_0_5ft"}}, {{"search_query": "oak trees", "zone_filter": "zone_30_100ft"}}. "next to my house" / "near the house" / "by the structure" = zone_0_5ft. "yard" / "garden" = zone_5_30ft.
 """
 
 
@@ -147,10 +148,19 @@ def _extract_intent_and_resources(
         if intent_str not in _VALID_INTENTS:
             intent_str = "general"
 
+        tab_context = None
+        tc_data = data.get("tab_context")
+        if isinstance(tc_data, dict):
+            tab_context = TabContext(
+                search_query=tc_data.get("search_query"),
+                zone_filter=tc_data.get("zone_filter"),
+            )
+
         intent = IntentClassification(
             primary_intent=intent_str,
             confidence=float(data.get("confidence", 0.5)),
             resource_tab=intent_str,
+            tab_context=tab_context,
         )
 
         resource_links = []
@@ -297,7 +307,8 @@ NURSERY_LOOKUP_TOOL = {
     "description": (
         "Search Nature Hills Nursery for a plant to check price and availability. "
         "Use this when the user asks about buying, ordering, or pricing a plant. "
-        "Returns product names, prices, and direct links to the nursery website."
+        "Returns product names, prices, direct links, and add-to-cart URLs. "
+        "Extract the quantity from the user's message (default 1)."
     ),
     "input_schema": {
         "type": "object",
@@ -310,6 +321,11 @@ NURSERY_LOOKUP_TOOL = {
                 "type": "string",
                 "description": "Optional scientific name for more precise results",
             },
+            "quantity": {
+                "type": "integer",
+                "description": "Number of plants the user wants to order (default 1)",
+                "default": 1,
+            },
         },
         "required": ["plant_name"],
     },
@@ -320,21 +336,39 @@ async def _execute_nursery_lookup(tool_input: dict) -> str:
     """Search Nature Hills Nursery and return formatted results."""
     from app.nursery.service import search_nursery
 
+    quantity = tool_input.get("quantity", 1)
     result = await search_nursery(
         tool_input["plant_name"],
         tool_input.get("scientific_name"),
+        quantity=quantity,
     )
 
+    nursery = result.get("nursery", "Succulents Box")
     if result["products"]:
-        lines = [f"Nature Hills Nursery results for '{result['plant_name']}':"]
+        lines = [f"{nursery} results for '{result['plant_name']}' (quantity: {quantity}):"]
         for p in result["products"]:
             price = p.get("price", "price not available")
-            lines.append(f"- {p['name']} — {price} — {p['url']}")
-        lines.append(f"\nDirect search link: {result['search_url']}")
+            lines.append(f"- {p['name']} — {price} each")
+            lines.append(f"  Product page: {p['url']}")
+            if p.get("add_to_cart_url") and p["add_to_cart_url"] != p["url"]:
+                lines.append(f"  ���� Add {quantity} to cart & go to checkout: {p['add_to_cart_url']}")
+        total_price = None
+        if result["products"][0].get("price"):
+            try:
+                unit = float(result["products"][0]["price"].replace("$", ""))
+                total_price = unit * quantity
+            except ValueError:
+                pass
+        if total_price:
+            lines.append(f"\nEstimated total for {quantity}: ${total_price:.2f}")
+        # Highlight the first cart link
+        first_cart = next((p["add_to_cart_url"] for p in result["products"] if p.get("add_to_cart_url") and p["add_to_cart_url"] != p["url"]), None)
+        if first_cart:
+            lines.append(f"\nDirect add-to-cart link (opens cart with {quantity} items): {first_cart}")
         return "\n".join(lines)
     else:
         return (
-            f"No exact products found for '{result['plant_name']}' at Nature Hills. "
+            f"No exact products found for '{result['plant_name']}' at {nursery}. "
             f"The user can browse search results directly: {result['search_url']}"
         )
 
