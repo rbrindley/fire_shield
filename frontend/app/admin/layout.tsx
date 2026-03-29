@@ -15,10 +15,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname === "/admin") return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-10">
+    <div className="min-h-screen bg-surface-container-low">
+      <header className="bg-surface-container-lowest border-b border-outline-variant/15 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 h-12 flex items-center gap-6">
-          <span className="font-bold text-stone-900 text-sm">Fire Shield Admin</span>
+          <span className="font-bold text-on-surface text-sm">Fire Shield Admin</span>
           <nav className="flex gap-1">
             {NAV.map((n) => (
               <Link
@@ -26,8 +26,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={n.href}
                 className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                   pathname.startsWith(n.href)
-                    ? "bg-orange-100 text-orange-800"
-                    : "text-stone-600 hover:text-stone-900 hover:bg-stone-100"
+                    ? "bg-primary-container/20 text-on-primary-container"
+                    : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
                 }`}
               >
                 {n.label}
@@ -35,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             ))}
           </nav>
           <div className="ml-auto">
-            <Link href="/" className="text-xs text-stone-400 hover:text-stone-600">
+            <Link href="/" className="text-xs text-outline hover:text-on-surface-variant">
               ← Back to app
             </Link>
           </div>

@@ -136,7 +136,7 @@ export default function PropertyOverviewPage({
 
   if (loading && !property) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-12 text-center text-stone-400">
+      <div className="max-w-5xl mx-auto px-4 py-12 text-center text-outline">
         Loading property…
       </div>
     );
@@ -145,8 +145,8 @@ export default function PropertyOverviewPage({
   if (!property) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-12 text-center">
-        <p className="text-stone-600 mb-4">Property not found.</p>
-        <Link href="/" className="text-orange-600 underline">← Enter an address</Link>
+        <p className="text-on-surface-variant mb-4">Property not found.</p>
+        <Link href="/" className="text-primary underline">← Enter an address</Link>
       </div>
     );
   }
@@ -172,14 +172,14 @@ export default function PropertyOverviewPage({
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-stone-900 mb-0.5">
+          <h1 className="text-xl font-bold text-on-surface mb-0.5">
             {property.display_address}
           </h1>
-          <p className="text-sm text-stone-500">{property.jurisdiction_display}</p>
+          <p className="text-sm text-on-surface-variant">{property.jurisdiction_display}</p>
           {property.jurisdiction_chain.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {property.jurisdiction_chain.map((j) => (
-                <span key={j} className="text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded border border-stone-200">
+                <span key={j} className="text-xs bg-surface-container text-on-surface-variant px-2 py-0.5 rounded border border-outline-variant/15">
                   {j}
                 </span>
               ))}
@@ -189,19 +189,19 @@ export default function PropertyOverviewPage({
         <div className="flex gap-2 flex-shrink-0">
           <Link
             href={`/map?profile=${property.property_profile_id}`}
-            className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors"
+            className="px-3 py-1.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:opacity-90 transition-colors"
           >
             View map →
           </Link>
           <Link
             href={`/chat?profile=${property.property_profile_id}`}
-            className="px-3 py-1.5 border border-stone-300 text-stone-700 rounded-lg text-sm font-medium hover:bg-stone-50 transition-colors"
+            className="px-3 py-1.5 border border-outline-variant/30 text-on-surface rounded-lg text-sm font-medium hover:bg-surface-container-low transition-colors"
           >
             Ask a question
           </Link>
           <Link
             href={`/plants?jurisdiction=${property.jurisdiction_code}`}
-            className="px-3 py-1.5 border border-stone-300 text-stone-700 rounded-lg text-sm font-medium hover:bg-stone-50 transition-colors"
+            className="px-3 py-1.5 border border-outline-variant/30 text-on-surface rounded-lg text-sm font-medium hover:bg-surface-container-low transition-colors"
           >
             Plants
           </Link>
@@ -209,13 +209,13 @@ export default function PropertyOverviewPage({
       </div>
 
       {/* Property profile */}
-      <div className="mb-6 border border-stone-200 rounded-lg overflow-hidden">
+      <div className="mb-6 border border-outline-variant/15 rounded-xl overflow-hidden">
         <button
           onClick={() => setProfileOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-4 py-2.5 bg-stone-50 hover:bg-stone-100 transition-colors text-sm font-medium text-stone-700"
+          className="w-full flex items-center justify-between px-4 py-2.5 bg-surface-container-low hover:bg-surface-container transition-colors text-sm font-medium text-on-surface"
         >
           <span>About your property</span>
-          <span className="text-stone-400">{profileOpen ? "−" : "+"}</span>
+          <span className="text-outline">{profileOpen ? "−" : "+"}</span>
         </button>
         {profileOpen && (
           <form
@@ -250,8 +250,8 @@ export default function PropertyOverviewPage({
             }}
           >
             <label className="flex flex-col gap-1">
-              <span className="text-stone-600">Roof type</span>
-              <select name="roof_type" defaultValue={property.roof_type ?? ""} className="border border-stone-300 rounded px-2 py-1.5 bg-white">
+              <span className="text-on-surface-variant">Roof type</span>
+              <select name="roof_type" defaultValue={property.roof_type ?? ""} className="border border-outline-variant/30 rounded px-2 py-1.5 bg-surface-container-lowest">
                 <option value="">Unknown</option>
                 <option value="asphalt_shingle">Asphalt shingle</option>
                 <option value="metal">Metal</option>
@@ -261,8 +261,8 @@ export default function PropertyOverviewPage({
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-stone-600">Siding type</span>
-              <select name="siding_type" defaultValue={property.siding_type ?? ""} className="border border-stone-300 rounded px-2 py-1.5 bg-white">
+              <span className="text-on-surface-variant">Siding type</span>
+              <select name="siding_type" defaultValue={property.siding_type ?? ""} className="border border-outline-variant/30 rounded px-2 py-1.5 bg-surface-container-lowest">
                 <option value="">Unknown</option>
                 <option value="fiber_cement">Fiber cement</option>
                 <option value="stucco">Stucco</option>
@@ -273,8 +273,8 @@ export default function PropertyOverviewPage({
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-stone-600">Slope category</span>
-              <select name="slope_category" defaultValue={property.slope_category ?? ""} className="border border-stone-300 rounded px-2 py-1.5 bg-white">
+              <span className="text-on-surface-variant">Slope category</span>
+              <select name="slope_category" defaultValue={property.slope_category ?? ""} className="border border-outline-variant/30 rounded px-2 py-1.5 bg-surface-container-lowest">
                 <option value="">Unknown</option>
                 <option value="flat">Flat (0–5%)</option>
                 <option value="moderate">Moderate (5–20%)</option>
@@ -284,19 +284,19 @@ export default function PropertyOverviewPage({
             </label>
             <div className="flex flex-col gap-2 justify-end">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="has_deck" defaultChecked={!!property.has_deck} className="rounded border-stone-300" />
-                <span className="text-stone-600">Has attached deck</span>
+                <input type="checkbox" name="has_deck" defaultChecked={!!property.has_deck} className="rounded border-outline-variant/30" />
+                <span className="text-on-surface-variant">Has attached deck</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" name="has_attached_fence" defaultChecked={!!property.has_attached_fence} className="rounded border-stone-300" />
-                <span className="text-stone-600">Has attached fence</span>
+                <input type="checkbox" name="has_attached_fence" defaultChecked={!!property.has_attached_fence} className="rounded border-outline-variant/30" />
+                <span className="text-on-surface-variant">Has attached fence</span>
               </label>
             </div>
             <div className="sm:col-span-2">
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-1.5 bg-orange-600 text-white rounded text-sm font-medium hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-1.5 bg-primary text-on-primary rounded text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-colors"
               >
                 {saving ? "Saving…" : "Save profile"}
               </button>
@@ -307,10 +307,10 @@ export default function PropertyOverviewPage({
 
       {/* Priority zone cards */}
       {loading ? (
-        <div className="text-center text-stone-400 py-12">Loading zone actions…</div>
+        <div className="text-center text-outline py-12">Loading zone actions…</div>
       ) : (
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-stone-600 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wide">
             {season === "summer" ? "Priority Actions — Fire Season" : "Priority Actions"}
           </h2>
           {priorityLayers.map((layer) => (
@@ -324,7 +324,7 @@ export default function PropertyOverviewPage({
           {zoneData && priorityLayers.length < zoneData.layers.length && (
             <Link
               href={`/map?profile=${property.property_profile_id}`}
-              className="block text-center text-sm text-orange-600 underline py-2"
+              className="block text-center text-sm text-primary underline py-2"
             >
               See all zones on the map →
             </Link>

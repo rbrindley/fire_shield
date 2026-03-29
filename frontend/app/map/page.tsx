@@ -5,28 +5,27 @@ import { useSearchParams } from "next/navigation";
 import HIZMap from "@/components/HIZMap";
 import Link from "next/link";
 
-// Derived at render time — no API call needed
-function getSeasonalBanner(): { label: string; message: string; color: string } | null {
-  const month = new Date().getMonth() + 1; // 1-12
+function getSeasonalBanner(): { label: string; message: string; style: string } | null {
+  const month = new Date().getMonth() + 1;
   if (month >= 6 && month <= 10) {
     return {
       label: "Fire Season",
-      message: "June–October is peak fire season in the Rogue Valley. Prioritize Layer 0 (vents, eaves) and Layer 1 (0–5 ft) actions now.",
-      color: "bg-red-50 border-red-300 text-red-800",
+      message: "June\u2013October is peak fire season in the Rogue Valley. Prioritize Layer 0 (vents, eaves) and Layer 1 (0\u20135 ft) actions now.",
+      style: "bg-tertiary-container/15 text-on-tertiary-container",
     };
   }
   if (month >= 3 && month <= 5) {
     return {
       label: "Spring Prep Window",
       message: "Spring is the best time to thin trees, clear dead vegetation, and clean gutters before fire season begins.",
-      color: "bg-amber-50 border-amber-300 text-amber-800",
+      style: "bg-primary-container/15 text-on-primary-container",
     };
   }
   if (month >= 11 || month <= 2) {
     return {
       label: "Winter Maintenance Window",
       message: "Good time for tree thinning and structural improvements. Fire risk is lower but planning ahead pays off.",
-      color: "bg-blue-50 border-blue-300 text-blue-800",
+      style: "bg-secondary-container/30 text-on-secondary-container",
     };
   }
   return null;
@@ -52,7 +51,6 @@ function MapInner() {
   const [coordsError, setCoordsError] = useState("");
 
   useEffect(() => {
-    // Try sessionStorage first
     const stored = sessionStorage.getItem("property");
     if (stored) {
       try {
@@ -71,13 +69,11 @@ function MapInner() {
       }
     }
 
-    // Fetch from API if profile ID provided
     if (profileId) {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
       fetch(`${apiUrl}/api/jurisdiction/profile/${profileId}`)
         .then((r) => r.json())
         .then((data) => {
-          // Profile row doesn't have all fields — minimal display
           setProperty({
             lat: data.lat ?? 42.1946,
             lng: data.lng ?? -122.7095,
@@ -137,8 +133,8 @@ function MapInner() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-12 text-center text-stone-500">
-        Loading property…
+      <div className="max-w-5xl mx-auto px-4 py-12 text-center text-on-surface-variant font-body">
+        Loading property\u2026
       </div>
     );
   }
@@ -146,9 +142,9 @@ function MapInner() {
   if (!property) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-12 text-center">
-        <p className="text-stone-600 mb-4">No property selected.</p>
-        <Link href="/" className="text-orange-600 underline">
-          Enter an address →
+        <p className="text-on-surface-variant mb-4 font-body">No property selected.</p>
+        <Link href="/" className="text-primary underline font-headline font-semibold">
+          Enter an address \u2192
         </Link>
       </div>
     );
@@ -160,9 +156,9 @@ function MapInner() {
     <div className="max-w-5xl mx-auto px-4 py-6">
       {/* Seasonal context banner */}
       {seasonalBanner && (
-        <div className={`mb-4 px-4 py-2.5 rounded-lg border text-sm flex items-start gap-2 ${seasonalBanner.color}`}>
-          <span className="font-semibold flex-shrink-0">{seasonalBanner.label}:</span>
-          <span>{seasonalBanner.message}</span>
+        <div className={`mb-4 px-4 py-3 rounded-2xl text-sm flex items-start gap-3 ${seasonalBanner.style}`}>
+          <span className="font-headline font-bold flex-shrink-0">{seasonalBanner.label}:</span>
+          <span className="font-body">{seasonalBanner.message}</span>
         </div>
       )}
 
@@ -170,13 +166,13 @@ function MapInner() {
       <div className="mb-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-stone-900 mb-0.5">
+            <h1 className="text-xl font-headline font-bold text-on-surface mb-0.5">
               {property.display_address}
             </h1>
-            <p className="text-sm text-stone-500">{property.jurisdiction_display}</p>
+            <p className="text-sm text-on-surface-variant font-body">{property.jurisdiction_display}</p>
             {property.geocode_failed && (
-              <form onSubmit={handleCoordsSubmit} className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                <p className="text-xs text-amber-800 mb-1.5">
+              <form onSubmit={handleCoordsSubmit} className="mt-2 bg-primary-container/10 rounded-xl px-4 py-3">
+                <p className="text-xs text-on-primary-container mb-1.5 font-body">
                   Address could not be precisely located. Drop a pin in Google Maps, copy the coordinates, and paste them here:
                 </p>
                 <div className="flex gap-2">
@@ -184,42 +180,44 @@ function MapInner() {
                     value={coordsInput}
                     onChange={(e) => setCoordsInput(e.target.value)}
                     placeholder="42.1946,-122.7095"
-                    className="flex-1 px-2 py-1 text-xs rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-orange-400"
+                    className="flex-1 px-3 py-1.5 text-xs rounded-lg bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/30 font-body"
                   />
                   <button
                     type="submit"
-                    className="px-3 py-1 text-xs bg-orange-600 text-white rounded font-medium hover:bg-orange-700 transition-colors"
+                    className="px-4 py-1.5 text-xs text-on-primary rounded-lg font-headline font-bold transition-colors"
+                    style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
                   >
                     Update location
                   </button>
                 </div>
-                {coordsError && <p className="text-xs text-red-600 mt-1">{coordsError}</p>}
+                {coordsError && <p className="text-xs text-error mt-1 font-body">{coordsError}</p>}
               </form>
             )}
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <Link
               href={`/chat?profile=${property.property_profile_id}`}
-              className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors"
+              className="px-4 py-2 text-on-primary rounded-xl text-sm font-headline font-bold hover:opacity-90 transition-all"
+              style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
             >
-              Ask a question →
+              Ask a question \u2192
             </Link>
             <Link
               href={`/plants?jurisdiction=${property.jurisdiction_code}`}
-              className="px-3 py-1.5 border border-stone-300 text-stone-700 rounded-lg text-sm font-medium hover:bg-stone-50 transition-colors"
+              className="px-4 py-2 bg-surface-container-high text-on-surface rounded-xl text-sm font-headline font-medium hover:bg-surface-container transition-colors"
             >
               Plant search
             </Link>
           </div>
         </div>
 
-        {/* Jurisdiction chain display */}
+        {/* Jurisdiction chain */}
         {property.jurisdiction_chain.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {property.jurisdiction_chain.map((j) => (
               <span
                 key={j}
-                className="text-xs bg-stone-100 text-stone-600 px-2 py-0.5 rounded border border-stone-200"
+                className="text-xs bg-surface-container-low text-on-surface-variant px-2 py-0.5 rounded-lg font-body"
               >
                 {j}
               </span>
@@ -237,10 +235,10 @@ function MapInner() {
       />
 
       {/* Instructions */}
-      <div className="mt-4 p-4 bg-stone-100 rounded-lg text-sm text-stone-600">
-        <span className="font-medium">How to use:</span> Select a zone from the
+      <div className="mt-4 p-4 bg-surface-container-low rounded-2xl text-sm text-on-surface-variant font-body">
+        <span className="font-headline font-semibold text-on-surface">How to use:</span> Select a zone from the
         panel on the right to see prioritized actions. Start with Layer 0 (the
-        house itself) — it&apos;s where most homes are lost.
+        house itself) &mdash; it&apos;s where most homes are lost.
       </div>
     </div>
   );
@@ -248,7 +246,7 @@ function MapInner() {
 
 export default function MapPage() {
   return (
-    <Suspense fallback={<div className="max-w-5xl mx-auto px-4 py-12 text-center text-stone-400">Loading map…</div>}>
+    <Suspense fallback={<div className="max-w-5xl mx-auto px-4 py-12 text-center text-on-surface-variant font-body">Loading map\u2026</div>}>
       <MapInner />
     </Suspense>
   );

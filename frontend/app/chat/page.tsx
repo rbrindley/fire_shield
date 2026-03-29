@@ -42,7 +42,6 @@ function ChatInner() {
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
-  // Load jurisdiction from stored property + fetch memory count
   useEffect(() => {
     const stored = sessionStorage.getItem("property");
     if (stored) {
@@ -50,7 +49,6 @@ function ChatInner() {
         const p = JSON.parse(stored);
         setJurisdictionDisplay(p.jurisdiction_display ?? null);
 
-        // Fetch memory count if we have a profile ID
         const pid = p.property_profile_id ?? profileId;
         if (pid) {
           fetch(`${apiUrl}/api/memory/${pid}`)
@@ -64,7 +62,6 @@ function ChatInner() {
     }
   }, [apiUrl, profileId]);
 
-  // Auto-submit initial question
   useEffect(() => {
     if (initialQ) {
       setInput("");
@@ -127,7 +124,6 @@ function ChatInner() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Refresh memory count after a short delay (extraction runs async)
       if (profileId) {
         setTimeout(() => {
           fetch(`${apiUrl}/api/memory/${profileId}`)
@@ -142,7 +138,7 @@ function ChatInner() {
         {
           role: "assistant",
           content:
-            "I couldn't retrieve an answer right now. Please check that the backend is running and try again.",
+            "I couldn\u2019t retrieve an answer right now. Please check that the backend is running and try again.",
         },
       ]);
     } finally {
@@ -150,7 +146,6 @@ function ChatInner() {
     }
   }
 
-  // Render answer text with inline [n] citation markers highlighted
   function renderAnswer(text: string, citations: Citation[] = []) {
     const parts = text.split(/(\[\d+\])/g);
     return parts.map((part, i) => {
@@ -164,10 +159,10 @@ function ChatInner() {
               key={i}
               className={`inline-flex items-center text-xs font-bold px-1 rounded ml-0.5 align-middle ${
                 citation.citation_type === "fire_science_evidence"
-                  ? "bg-purple-100 text-purple-700"
+                  ? "bg-tertiary-container/20 text-tertiary"
                   : citation.citation_type === "structured_data"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-blue-100 text-blue-700"
+                  ? "bg-secondary-container text-on-secondary-container"
+                  : "bg-primary-container/20 text-primary"
               }`}
               title={citation.document_title}
               onClick={() =>
@@ -191,12 +186,15 @@ function ChatInner() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="font-bold text-stone-900">Ask Fire Shield</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-headline font-bold text-on-surface">Digital Arborist</h1>
+            <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+          </div>
           {jurisdictionDisplay && (
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-on-surface-variant font-body">
               {jurisdictionDisplay}
               {memoryCount > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium">
+                <span className="ml-2 px-1.5 py-0.5 bg-tertiary-container/20 text-tertiary rounded text-[10px] font-bold">
                   {memoryCount} {memoryCount === 1 ? "memory" : "memories"}
                 </span>
               )}
@@ -204,15 +202,15 @@ function ChatInner() {
           )}
         </div>
         {/* Mode toggle */}
-        <div className="flex gap-1 bg-stone-100 rounded-lg p-1">
+        <div className="flex gap-1 bg-surface-container-low rounded-full p-1">
           {(["simple", "pro"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-sm font-headline font-medium transition-colors ${
                 mode === m
-                  ? "bg-white shadow text-stone-900"
-                  : "text-stone-500 hover:text-stone-700"
+                  ? "bg-surface-container-lowest shadow-sm text-on-surface"
+                  : "text-on-surface-variant hover:text-on-surface"
               }`}
             >
               {MODE_LABELS[m]}
@@ -224,55 +222,52 @@ function ChatInner() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
         {messages.length === 0 && (
-          <div className="text-center text-stone-400 pt-16">
-            <div className="text-4xl mb-3">💬</div>
-            <p className="text-sm">Ask anything about wildfire preparedness for your property.</p>
+          <div className="text-center text-on-surface-variant pt-16">
+            <p className="text-sm font-body">Ask anything about wildfire preparedness for your property.</p>
           </div>
         )}
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[85%] rounded-xl px-4 py-3 ${
+              className={`max-w-[85%] px-5 py-3.5 ${
                 msg.role === "user"
-                  ? "bg-orange-600 text-white"
-                  : "bg-white border border-stone-200 shadow-sm"
+                  ? "rounded-3xl rounded-tr-sm text-on-primary"
+                  : "bg-surface-container-lowest rounded-3xl rounded-tl-sm shadow-[0_2px_12px_rgba(27,28,26,0.06)]"
               }`}
+              style={msg.role === "user" ? { background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" } : undefined}
             >
               {msg.role === "assistant" ? (
                 <div>
-                  {/* NWS alert banner */}
+                  {/* NWS alert */}
                   {msg.nwsAlert && (
-                    <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800 font-medium">
-                      🚨 {msg.nwsAlert}
+                    <div className="mb-3 p-3 bg-tertiary-container/15 rounded-xl text-xs text-on-tertiary-container font-body font-medium">
+                      {msg.nwsAlert}
                     </div>
                   )}
 
                   {/* Jurisdiction note */}
                   {msg.jurisdictionNote && (
-                    <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
-                      ℹ {msg.jurisdictionNote}
+                    <div className="mb-3 p-3 bg-primary-container/10 rounded-xl text-xs text-on-primary-container font-body">
+                      {msg.jurisdictionNote}
                     </div>
                   )}
 
-                  {/* Answer with inline citations */}
-                  <div className="text-sm text-stone-800 leading-relaxed whitespace-pre-wrap">
+                  {/* Answer */}
+                  <div className="text-sm text-on-surface leading-relaxed whitespace-pre-wrap font-body">
                     {renderAnswer(msg.content, msg.citations)}
                   </div>
 
-                  {/* Citation list */}
+                  {/* Citations */}
                   {msg.citations && msg.citations.length > 0 && (
-                    <div className="mt-3 space-y-1.5">
-                      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">
+                    <div className="mt-4 space-y-1.5">
+                      <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest font-body">
                         Sources
                       </p>
                       {msg.citations.map((c) => (
-                        <div
-                          key={c.ref_number}
-                          id={`citation-${c.ref_number}`}
-                        >
+                        <div key={c.ref_number} id={`citation-${c.ref_number}`}>
                           <CitationLink
-                            citation={`[${c.ref_number}] ${c.document_title}${c.section_title ? ` — ${c.section_title}` : ""}: ${c.excerpt}`}
+                            citation={`[${c.ref_number}] ${c.document_title}${c.section_title ? ` \u2014 ${c.section_title}` : ""}: ${c.excerpt}`}
                             type={c.citation_type}
                             url={c.source_url}
                           />
@@ -282,7 +277,7 @@ function ChatInner() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm">{msg.content}</p>
+                <p className="text-sm font-body">{msg.content}</p>
               )}
             </div>
           </div>
@@ -290,11 +285,11 @@ function ChatInner() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white border border-stone-200 rounded-xl px-4 py-3 shadow-sm">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-stone-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-2 h-2 bg-stone-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-2 h-2 bg-stone-400 rounded-full animate-bounce" />
+            <div className="bg-surface-container-lowest rounded-3xl rounded-tl-sm px-5 py-4 shadow-[0_2px_12px_rgba(27,28,26,0.06)]">
+              <div className="flex gap-1.5">
+                <span className="w-2 h-2 bg-outline-variant rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <span className="w-2 h-2 bg-outline-variant rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <span className="w-2 h-2 bg-outline-variant rounded-full animate-bounce" />
               </div>
             </div>
           </div>
@@ -314,14 +309,15 @@ function ChatInner() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about vent screening, plants, grants, local code…"
-          className="flex-1 px-4 py-3 rounded-xl border border-stone-300 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white shadow-sm text-sm"
+          placeholder="Ask about vent screening, plants, grants, local code\u2026"
+          className="flex-1 px-5 py-3.5 rounded-2xl bg-surface-container-lowest text-on-surface placeholder:text-outline/60 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-[0_2px_12px_rgba(27,28,26,0.04)] text-sm font-body"
           disabled={loading}
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          className="px-5 py-3 bg-orange-600 text-white rounded-xl font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors text-sm"
+          className="px-6 py-3.5 text-on-primary rounded-2xl font-headline font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+          style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
         >
           Send
         </button>
@@ -332,7 +328,7 @@ function ChatInner() {
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div className="max-w-3xl mx-auto px-4 py-12 text-center text-stone-400">Loading…</div>}>
+    <Suspense fallback={<div className="max-w-3xl mx-auto px-4 py-12 text-center text-on-surface-variant font-body">Loading\u2026</div>}>
       <ChatInner />
     </Suspense>
   );

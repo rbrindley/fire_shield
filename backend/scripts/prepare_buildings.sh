@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DATA_DIR="${SCRIPT_DIR}/../data"
 mkdir -p "$DATA_DIR"
 
-DOWNLOAD_URL="https://usbuildingdata.blob.core.windows.net/usbuildings-v2/Oregon.geojsonl.zip"
+DOWNLOAD_URL="https://minedbuildings.z5.web.core.windows.net/legacy/usbuildings-v2/Oregon.geojson.zip"
 ZIP_FILE="$DATA_DIR/Oregon.geojsonl.zip"
 GEOJSONL_FILE="$DATA_DIR/Oregon.geojsonl"
 OUTPUT_FILE="$DATA_DIR/oregon_buildings.fgb"

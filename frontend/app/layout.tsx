@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Manrope, Inter } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 
-const geist = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-headline",
+  subsets: ["latin"],
+});
+
+const inter = Inter({
+  variable: "--font-body",
   subsets: ["latin"],
 });
 
@@ -20,15 +25,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-stone-50 text-stone-900">
+    <html lang="en" className={`${manrope.variable} ${inter.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-surface text-on-surface font-body">
         <Nav />
         <main className="flex-1">{children}</main>
-        <footer className="border-t border-stone-200 bg-white py-4 text-center text-xs text-stone-500">
+        <footer className="bg-surface-container-low py-6 text-center text-xs text-on-surface-variant">
           Fire Shield — Open source wildfire prevention for the Rogue Valley.{" "}
           <a
             href="/llms.txt"
-            className="underline hover:text-stone-700"
+            className="underline hover:text-on-surface"
             target="_blank"
           >
             llms.txt

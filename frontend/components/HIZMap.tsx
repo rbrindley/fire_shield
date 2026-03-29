@@ -209,23 +209,23 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
         <style>{`@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");`}</style>
         <div
           ref={mapRef}
-          className="w-full h-full rounded-xl border border-stone-200 shadow-sm overflow-hidden"
+          className="w-full h-full rounded-2xl shadow-[0_4px_24px_rgba(27,28,26,0.06)] overflow-hidden"
         />
 
         {/* Footprint source badge */}
         {footprintData.source && (
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur rounded-lg shadow px-2.5 py-1.5 text-xs text-stone-500 z-[1000]">
+          <div className="absolute bottom-4 left-4 bg-surface-container-lowest/90 backdrop-blur-xl rounded-xl shadow-sm px-3 py-2 text-xs text-on-surface-variant font-body z-[1000]">
             Building outline: {footprintData.source === "microsoft" ? "Microsoft" : "OpenStreetMap"}
           </div>
         )}
         {footprintLoading && (
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur rounded-lg shadow px-2.5 py-1.5 text-xs text-stone-400 z-[1000]">
-            Loading building outline…
+          <div className="absolute bottom-4 left-4 bg-surface-container-lowest/90 backdrop-blur-xl rounded-xl shadow-sm px-3 py-2 text-xs text-outline font-body z-[1000]">
+            Loading building outline\u2026
           </div>
         )}
         {!footprintLoading && !footprintData.source && (
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur rounded-lg shadow px-2.5 py-1.5 text-xs text-stone-400 z-[1000]">
-            No building footprint found — using point estimate
+          <div className="absolute bottom-4 left-4 bg-surface-container-lowest/90 backdrop-blur-xl rounded-xl shadow-sm px-3 py-2 text-xs text-outline font-body z-[1000]">
+            No building footprint found \u2014 using point estimate
           </div>
         )}
       </div>
@@ -234,32 +234,32 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
       <div className="w-80 flex flex-col overflow-hidden">
         {/* Zone selector buttons */}
         <div className="flex flex-col gap-1.5 mb-3 flex-shrink-0">
-          <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Select a zone</p>
+          <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest font-body">Select a zone</p>
           <button
             onClick={() => setSelectedLayer(0)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors text-left ${
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-headline font-medium transition-colors text-left ${
               selectedLayer === 0
-                ? "bg-stone-900 text-white border-stone-900"
-                : "bg-white text-stone-700 border-stone-200 hover:border-stone-400"
+                ? "bg-inverse-surface text-inverse-on-surface"
+                : "bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high"
             }`}
           >
-            <span className="w-3 h-3 rounded-full bg-stone-900 flex-shrink-0" />
+            <span className="w-3 h-3 rounded-full bg-inverse-surface flex-shrink-0" style={selectedLayer === 0 ? { backgroundColor: "#f2f0ed" } : undefined} />
             Layer 0: House
           </button>
           {ZONE_RINGS.map((r, i) => (
             <button
               key={r.label}
               onClick={() => setSelectedLayer(i + 1)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors text-left ${
+              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-headline font-medium transition-colors text-left ${
                 selectedLayer === i + 1
-                  ? "text-white border-transparent"
-                  : "bg-white text-stone-700 border-stone-200 hover:border-stone-400"
+                  ? "text-white"
+                  : "bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-high"
               }`}
-              style={selectedLayer === i + 1 ? { backgroundColor: r.color, borderColor: r.color } : undefined}
+              style={selectedLayer === i + 1 ? { backgroundColor: r.color } : undefined}
             >
               <span
-                className="w-3 h-3 rounded-full border flex-shrink-0"
-                style={{ backgroundColor: r.fillColor, borderColor: r.color }}
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: r.fillColor, border: `2px solid ${r.color}` }}
               />
               Layer {i + 1}: {r.label}
             </button>
@@ -269,11 +269,11 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
         {/* Action card panel */}
         <div className="flex-1 overflow-y-auto">
           {selectedLayer === null ? (
-            <div className="flex flex-col items-center justify-center text-center text-stone-400 px-4 py-8">
-              <p className="text-sm">Select a zone above to see prioritized actions</p>
+            <div className="flex flex-col items-center justify-center text-center text-outline px-4 py-8">
+              <p className="text-sm font-body">Select a zone above to see prioritized actions</p>
             </div>
           ) : loadingZones ? (
-            <div className="p-4 text-stone-500 text-sm">Loading actions…</div>
+            <div className="p-4 text-on-surface-variant text-sm font-body">Loading actions\u2026</div>
           ) : selectedLayerData ? (
             <ZoneCard
               layer={selectedLayerData}
