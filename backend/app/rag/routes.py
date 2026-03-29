@@ -6,10 +6,53 @@ import time
 from fastapi import APIRouter, HTTPException, status
 
 from app.config import get_settings
-from app.models.query import QueryRequest, QueryResponse
+from app.models.query import QueryRequest, QueryResponse, ResourceLink
 
 router = APIRouter()
 settings = get_settings()
+
+_DEFAULT_RESOURCES: dict[str, list[dict]] = {
+    "plants": [
+        {"title": "Browse plant database", "description": "Search fire-resistant plants by zone and traits", "intent_tag": "plants"},
+        {"title": "Zone planting guide", "description": "Which plants belong in each defensible space zone", "intent_tag": "zones"},
+    ],
+    "map": [
+        {"title": "View your property map", "description": "See your defensible space zones on the map", "intent_tag": "map"},
+        {"title": "Zone actions checklist", "description": "Actions to complete for each zone layer", "intent_tag": "zones"},
+    ],
+    "zones": [
+        {"title": "Defensible space zones", "description": "Understand the 0-5ft, 5-30ft, 30-100ft, and 100+ft zones", "intent_tag": "zones"},
+        {"title": "Zone actions by layer", "description": "Prioritized actions for each zone layer", "intent_tag": "zones"},
+    ],
+    "build": [
+        {"title": "Build instructions", "description": "Step-by-step guides for fire preparedness projects", "intent_tag": "build"},
+        {"title": "Educational prompts", "description": "Teaching resources and classroom activities", "intent_tag": "build"},
+    ],
+    "general": [
+        {"title": "Ask the Digital Arborist", "description": "Get personalized wildfire preparedness advice", "intent_tag": "general"},
+    ],
+    "property": [
+        {"title": "View your property map", "description": "See your defensible space zones on the map", "intent_tag": "map"},
+        {"title": "Property assessment", "description": "Review your property's readiness score", "intent_tag": "property"},
+    ],
+}
+
+
+def _merge_resource_links(
+    llm_links: list[ResourceLink], intent: str, max_total: int = 10,
+) -> list[ResourceLink]:
+    """Merge LLM-generated links with hardcoded defaults, up to max_total."""
+    result = list(llm_links)
+    seen_titles = {link.title.lower() for link in result}
+
+    for default in _DEFAULT_RESOURCES.get(intent, []):
+        if len(result) >= max_total:
+            break
+        if default["title"].lower() not in seen_titles:
+            result.append(ResourceLink(**default))
+            seen_titles.add(default["title"].lower())
+
+    return result[:max_total]
 
 
 @router.post("/", response_model=QueryResponse)
@@ -78,7 +121,7 @@ async def query(request: QueryRequest):
 
     # Generation
     generation_start = time.time()
-    answer, citations, jurisdiction_note, nws_alert = await generate_answer(
+    answer, citations, jurisdiction_note, nws_alert, intent, resource_links = await generate_answer(
         question=request.question,
         chunks=reranked_chunks,
         jurisdiction_code=request.jurisdiction_code,
@@ -91,6 +134,10 @@ async def query(request: QueryRequest):
     )
     generation_time_ms = int((time.time() - generation_start) * 1000)
     total_time_ms = int((time.time() - start_time) * 1000)
+
+    # Merge LLM resource suggestions with hardcoded defaults
+    intent_name = intent.primary_intent if intent else "general"
+    merged_links = _merge_resource_links(resource_links, intent_name)
 
     # Fire memory extraction as background task (non-blocking)
     if request.property_profile_id and settings.anthropic_api_key:
@@ -107,6 +154,8 @@ async def query(request: QueryRequest):
         citations=citations,
         jurisdiction_note=jurisdiction_note,
         nws_alert=nws_alert,
+        intent=intent,
+        resource_links=merged_links,
         profile_used=request.profile,
         retrieval_time_ms=retrieval_time_ms,
         generation_time_ms=generation_time_ms,

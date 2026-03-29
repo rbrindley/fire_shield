@@ -94,40 +94,43 @@ function MapInner() {
   async function handleCoordsSubmit(e: React.FormEvent) {
     e.preventDefault();
     setCoordsError("");
-    const match = coordsInput.trim().match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
-    if (!match) {
-      setCoordsError("Enter coordinates as lat,lng (e.g. 42.1946,-122.7095)");
-      return;
-    }
-    const lat = parseFloat(match[1]);
-    const lng = parseFloat(match[2]);
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      setCoordsError("Latitude must be -90 to 90, longitude -180 to 180");
-      return;
-    }
+    const input = coordsInput.trim();
+    if (!input) return;
 
+    const latLngMatch = input.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
+
     try {
+      let body: Record<string, unknown>;
+
+      if (latLngMatch) {
+        const lat = parseFloat(latLngMatch[1]);
+        const lng = parseFloat(latLngMatch[2]);
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          setCoordsError("Latitude must be -90 to 90, longitude -180 to 180");
+          return;
+        }
+        body = { address: input, lat, lng };
+      } else {
+        body = { address: input };
+      }
+
       const res = await fetch(`${apiUrl}/api/jurisdiction/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: property?.display_address ?? coordsInput.trim(),
-          lat,
-          lng,
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       sessionStorage.setItem("property", JSON.stringify(data));
       setProperty({
         ...data,
-        lat: data.lat ?? lat,
-        lng: data.lng ?? lng,
+        lat: data.lat ?? property?.lat,
+        lng: data.lng ?? property?.lng,
         property_profile_id: data.property_profile_id,
       });
     } catch {
-      setCoordsError("Failed to resolve location. Try again.");
+      setCoordsError("Couldn\u2019t locate that. Try a full address or lat,lng (e.g. 42.19,-122.71).");
     }
   }
 
@@ -173,13 +176,13 @@ function MapInner() {
             {property.geocode_failed && (
               <form onSubmit={handleCoordsSubmit} className="mt-2 bg-primary-container/10 rounded-xl px-4 py-3">
                 <p className="text-xs text-on-primary-container mb-1.5 font-body">
-                  Address could not be precisely located. Drop a pin in Google Maps, copy the coordinates, and paste them here:
+                  Address could not be precisely located. Try entering a full address or paste coordinates from Google Maps:
                 </p>
                 <div className="flex gap-2">
                   <input
                     value={coordsInput}
                     onChange={(e) => setCoordsInput(e.target.value)}
-                    placeholder="42.1946,-122.7095"
+                    placeholder="86 Almeda Dr, Ashland OR — or 42.19,-122.71"
                     className="flex-1 px-3 py-1.5 text-xs rounded-lg bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary/30 font-body"
                   />
                   <button

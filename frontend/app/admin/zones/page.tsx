@@ -35,6 +35,11 @@ const LAYER_COLORS: Record<number, string> = {
   4: "border-green-500 bg-green-50",
 };
 
+function getAdminToken() {
+  const match = document.cookie.match(/admin_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
 export default function AdminZonesPage() {
   const [actions, setActions] = useState<ZoneAction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,9 +52,19 @@ export default function AdminZonesPage() {
   async function loadActions() {
     setLoading(true);
     try {
-      const res = await fetch(`${apiUrl}/api/admin/zones`, { credentials: "include" });
+      const token = getAdminToken();
+      const res = await fetch(`${apiUrl}/api/admin/zones`, {
+        credentials: "include",
+        headers: token ? { "X-Admin-Token": token } : {},
+      });
+      if (res.status === 401) {
+        window.location.href = "/admin";
+        return;
+      }
       const data = await res.json();
       setActions(Array.isArray(data) ? data : []);
+    } catch {
+      setActions([]);
     } finally {
       setLoading(false);
     }
@@ -72,10 +87,14 @@ export default function AdminZonesPage() {
   async function saveEdit(id: string) {
     setSaving(true);
     try {
+      const token = getAdminToken();
       await fetch(`${apiUrl}/api/admin/zones/${id}`, {
         method: "PATCH",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "X-Admin-Token": token } : {}),
+        },
         body: JSON.stringify(editValues),
       });
       setEditingId(null);

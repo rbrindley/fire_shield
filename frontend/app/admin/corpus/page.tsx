@@ -69,13 +69,19 @@ export default function CorpusPage() {
   async function loadSources() {
     setLoading(true);
     try {
+      const token = getAdminToken();
       const res = await fetch(`${apiUrl}/api/admin/corpus`, {
         credentials: "include",
+        headers: token ? { "X-Admin-Token": token } : {},
       });
+      if (res.status === 401) {
+        window.location.href = "/admin";
+        return;
+      }
       const data = await res.json();
-      setSources(data);
+      setSources(Array.isArray(data) ? data : []);
     } catch {
-      // ignore
+      setSources([]);
     } finally {
       setLoading(false);
     }
@@ -87,9 +93,13 @@ export default function CorpusPage() {
 
   async function updateChainPreview(jurisdiction: string) {
     try {
+      const token = getAdminToken();
       const res = await fetch(
         `${apiUrl}/api/admin/corpus/jurisdiction-preview/${jurisdiction}`,
-        { credentials: "include" }
+        {
+          credentials: "include",
+          headers: token ? { "X-Admin-Token": token } : {},
+        }
       );
       const data = await res.json();
       setChainPreview(data.chain ?? []);
@@ -99,18 +109,24 @@ export default function CorpusPage() {
   }
 
   async function deprecate(id: number) {
+    const token = getAdminToken();
     await fetch(`${apiUrl}/api/admin/corpus/${id}`, {
       method: "DELETE",
       credentials: "include",
+      headers: token ? { "X-Admin-Token": token } : {},
     });
     await loadSources();
   }
 
   async function activate(id: number) {
+    const token = getAdminToken();
     await fetch(`${apiUrl}/api/admin/corpus/${id}`, {
       method: "PATCH",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "X-Admin-Token": token } : {}),
+      },
       body: JSON.stringify({ status: "active" }),
     });
     await loadSources();
@@ -121,10 +137,14 @@ export default function CorpusPage() {
     setIngestLoading(true);
     setIngestMessage("");
     try {
+      const token = getAdminToken();
       const res = await fetch(`${apiUrl}/api/ingest/url`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "X-Admin-Token": token } : {}),
+        },
         body: JSON.stringify({
           url: ingestUrl,
           title: ingestTitle,

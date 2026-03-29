@@ -30,6 +30,23 @@ class Citation(BaseModel):
     source_url: str | None = None
 
 
+class IntentClassification(BaseModel):
+    """Classified intent from the user's question."""
+
+    primary_intent: Literal["map", "plants", "zones", "build", "property", "general"]
+    confidence: float
+    resource_tab: str
+
+
+class ResourceLink(BaseModel):
+    """A resource link suggested for the user."""
+
+    title: str
+    description: str
+    intent_tag: str
+    url: str | None = None
+
+
 class QueryResponse(BaseModel):
     """Query response payload."""
 
@@ -37,6 +54,8 @@ class QueryResponse(BaseModel):
     citations: list[Citation]
     jurisdiction_note: str | None = None
     nws_alert: str | None = None
+    intent: IntentClassification | None = None
+    resource_links: list[ResourceLink] = []
     profile_used: str
     retrieval_time_ms: int
     generation_time_ms: int

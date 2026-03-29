@@ -5,7 +5,7 @@ import re
 from typing import Literal
 
 from app.config import get_settings
-from app.models.query import Citation
+from app.models.query import Citation, IntentClassification, ResourceLink
 from app.rag.profiles import get_profile_instructions
 
 settings = get_settings()
@@ -30,6 +30,19 @@ Source headers show [TIER-n-TYPE] — higher-trust sources take precedence when 
 {memory_section}
 SOURCES:
 {chunks_text}
+
+INTENT CLASSIFICATION:
+After your answer, on a new line emit exactly one JSON block fenced like this:
+<!-- INTENT_JSON: {{"intent": "...", "confidence": 0.0, "resource_suggestions": [...]}} -->
+- intent: one of "map", "plants", "zones", "build", "property", "general"
+  - "map" = user wants to see their property map, zone rings, or satellite view
+  - "plants" = user asks about fire-resistant plants, landscaping, vegetation
+  - "zones" = user asks about defensible space zones, zone actions, clearance distances
+  - "build" = user asks about education, teaching, building projects, DIY instructions
+  - "property" = user asks about their specific property assessment or profile
+  - "general" = everything else (grants, insurance, general preparedness)
+- confidence: 0.0 to 1.0
+- resource_suggestions: array of 1-5 objects with "title", "description", "intent_tag" fields
 """
 
 
@@ -43,11 +56,11 @@ async def generate_answer(
     lat: float | None = None,
     lng: float | None = None,
     memory_context: str | None = None,
-) -> tuple[str, list[Citation], str | None, str | None]:
+) -> tuple[str, list[Citation], str | None, str | None, IntentClassification | None, list[ResourceLink]]:
     """Generate answer using Claude with jurisdiction context and NWS tool-use.
 
     Returns:
-        (renumbered_answer, citations, jurisdiction_note, nws_alert)
+        (renumbered_answer, citations, jurisdiction_note, nws_alert, intent, resource_links)
     """
     chunks_text, number_to_id = _format_chunks_for_context(chunks)
     profile_instructions = get_profile_instructions(profile)
@@ -102,9 +115,58 @@ async def generate_answer(
         nws_alert = await _fetch_nws_alert(lat, lng)
 
     answer = await _generate_claude(system_prompt, question, nws_alert)
-    renumbered_answer, citations = _extract_citations_and_renumber(answer, chunks, number_to_id)
+    cleaned_answer, intent, resource_links = _extract_intent_and_resources(answer)
+    renumbered_answer, citations = _extract_citations_and_renumber(cleaned_answer, chunks, number_to_id)
 
-    return renumbered_answer, citations, jurisdiction_note, nws_alert
+    return renumbered_answer, citations, jurisdiction_note, nws_alert, intent, resource_links
+
+
+_INTENT_PATTERN = re.compile(r"<!--\s*INTENT_JSON:\s*(\{.*?\})\s*-->", re.DOTALL)
+
+_VALID_INTENTS = {"map", "plants", "zones", "build", "property", "general"}
+
+
+def _extract_intent_and_resources(
+    answer: str,
+) -> tuple[str, IntentClassification | None, list[ResourceLink]]:
+    """Parse the <!-- INTENT_JSON: ... --> block from the LLM answer.
+
+    Returns (cleaned_answer, intent, resource_links). Falls back gracefully.
+    """
+    match = _INTENT_PATTERN.search(answer)
+    if not match:
+        return answer, None, []
+
+    cleaned = answer[: match.start()].rstrip() + answer[match.end() :]
+    cleaned = cleaned.rstrip()
+
+    try:
+        data = json.loads(match.group(1))
+        intent_str = data.get("intent", "general")
+        if intent_str not in _VALID_INTENTS:
+            intent_str = "general"
+
+        intent = IntentClassification(
+            primary_intent=intent_str,
+            confidence=float(data.get("confidence", 0.5)),
+            resource_tab=intent_str,
+        )
+
+        resource_links = []
+        for sug in data.get("resource_suggestions", []):
+            if isinstance(sug, dict) and "title" in sug:
+                resource_links.append(
+                    ResourceLink(
+                        title=sug["title"],
+                        description=sug.get("description", ""),
+                        intent_tag=sug.get("intent_tag", intent_str),
+                        url=sug.get("url"),
+                    )
+                )
+
+        return cleaned, intent, resource_links
+    except (json.JSONDecodeError, ValueError, TypeError):
+        return cleaned, None, []
 
 
 def _format_chunks_for_context(chunks: list[dict]) -> tuple[str, dict[int, str]]:

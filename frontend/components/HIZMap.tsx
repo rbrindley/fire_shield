@@ -117,13 +117,25 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
-      const map = L.map(mapRef.current).setView([lat, lng], 18);
+      const map = L.map(mapRef.current).setView([lat, lng], 19);
       mapInstanceRef.current = map;
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      // Base street map
+      const streets = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
-      }).addTo(map);
+        maxZoom: 22,
+        maxNativeZoom: 19,
+      });
+
+      // Satellite imagery (Esri)
+      const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        attribution: "Tiles &copy; Esri",
+        maxZoom: 22,
+        maxNativeZoom: 19,
+      });
+
+      streets.addTo(map);
+      L.control.layers({ "Street": streets, "Satellite": satellite }, {}, { position: "topright" }).addTo(map);
 
       // Property marker
       L.marker([lat, lng])
@@ -172,7 +184,18 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
             fillColor: ring.fillColor,
             fillOpacity: 0.18,
           },
-          interactive: false,
+          interactive: true,
+          bubblingMouseEvents: false,
+        });
+
+        geoLayer.on("click", () => {
+          setSelectedLayer(layerIndex + 1);
+        });
+        geoLayer.on("mouseover", () => {
+          geoLayer.setStyle({ fillOpacity: 0.35, weight: 3 });
+        });
+        geoLayer.on("mouseout", () => {
+          geoLayer.setStyle({ fillOpacity: 0.18, weight: 2 });
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -189,7 +212,18 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
             fillOpacity: 0.5,
             weight: 2,
           },
-          interactive: false,
+          interactive: true,
+          bubblingMouseEvents: false,
+        });
+
+        footprintLayer.on("click", () => {
+          setSelectedLayer(0);
+        });
+        footprintLayer.on("mouseover", () => {
+          footprintLayer.setStyle({ fillOpacity: 0.7, weight: 3 });
+        });
+        footprintLayer.on("mouseout", () => {
+          footprintLayer.setStyle({ fillOpacity: 0.5, weight: 2 });
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         footprintLayer.addTo(map as any);
@@ -206,7 +240,7 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
       {/* Map */}
       <div className="flex-1 relative">
         {/* Leaflet CSS */}
-        <style>{`@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");`}</style>
+        <style>{`@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"); .leaflet-interactive { cursor: pointer !important; }`}</style>
         <div
           ref={mapRef}
           className="w-full h-full rounded-2xl shadow-[0_4px_24px_rgba(27,28,26,0.06)] overflow-hidden"

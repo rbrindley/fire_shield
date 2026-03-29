@@ -1,10 +1,8 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import CitationLink from "@/components/CitationLink";
 
-// Web Speech API types
 interface SpeechRecognitionEvent extends Event {
   results: { [index: number]: { [index: number]: { transcript: string } }; length: number };
   resultIndex: number;
@@ -31,6 +29,28 @@ interface Citation {
   source_url?: string;
 }
 
+interface IntentClassification {
+  primary_intent: string;
+  confidence: number;
+  resource_tab: string;
+}
+
+interface ResourceLink {
+  title: string;
+  description: string;
+  intent_tag: string;
+  url?: string;
+}
+
+export interface QueryResponse {
+  answer: string;
+  citations: Citation[];
+  jurisdiction_note?: string;
+  nws_alert?: string;
+  intent?: IntentClassification;
+  resource_links?: ResourceLink[];
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -44,30 +64,21 @@ const MODE_LABELS: Record<string, string> = {
   pro: "Pro",
 };
 
-function ChatInner() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const initialQ = searchParams.get("q") ?? "";
-  const profileId = searchParams.get("profile") ?? "";
+interface ChatPanelProps {
+  initialQuestion?: string;
+  profileId?: string;
+  onQueryResponse?: (response: QueryResponse) => void;
+}
 
-  // Redirect to /main with the same query params
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (initialQ) params.set("q", initialQ);
-    if (profileId) params.set("profile", profileId);
-    const qs = params.toString();
-    router.replace(`/main${qs ? `?${qs}` : ""}`);
-  }, [router, initialQ, profileId]);
-
+export default function ChatPanel({ initialQuestion, profileId, onQueryResponse }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState(initialQ);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"simple" | "pro">("simple");
-  const [jurisdictionDisplay, setJurisdictionDisplay] = useState<string | null>(null);
-  const [memoryCount, setMemoryCount] = useState(0);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sentInitialRef = useRef(false);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
@@ -103,33 +114,14 @@ function ChatInner() {
     setListening(true);
   }, [listening]);
 
+  // Send initial question once
   useEffect(() => {
-    const stored = sessionStorage.getItem("property");
-    if (stored) {
-      try {
-        const p = JSON.parse(stored);
-        setJurisdictionDisplay(p.jurisdiction_display ?? null);
-
-        const pid = p.property_profile_id ?? profileId;
-        if (pid) {
-          fetch(`${apiUrl}/api/memory/${pid}`)
-            .then((r) => r.json())
-            .then((data) => setMemoryCount(data.count ?? 0))
-            .catch(() => {});
-        }
-      } catch {
-        // ignore
-      }
-    }
-  }, [apiUrl, profileId]);
-
-  useEffect(() => {
-    if (initialQ) {
-      setInput("");
-      handleSend(initialQ);
+    if (initialQuestion && !sentInitialRef.current) {
+      sentInitialRef.current = true;
+      handleSend(initialQuestion);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialQuestion]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -185,14 +177,15 @@ function ChatInner() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
-      if (profileId) {
-        setTimeout(() => {
-          fetch(`${apiUrl}/api/memory/${profileId}`)
-            .then((r) => r.json())
-            .then((d) => setMemoryCount(d.count ?? 0))
-            .catch(() => {});
-        }, 3000);
-      }
+      // Notify parent of the full response (intent + resource_links)
+      onQueryResponse?.({
+        answer: data.answer,
+        citations: data.citations ?? [],
+        jurisdiction_note: data.jurisdiction_note,
+        nws_alert: data.nws_alert,
+        intent: data.intent,
+        resource_links: data.resource_links,
+      });
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -243,32 +236,19 @@ function ChatInner() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-4 flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-headline font-bold text-on-surface">Digital Arborist</h1>
-            <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-          </div>
-          {jurisdictionDisplay && (
-            <p className="text-xs text-on-surface-variant font-body">
-              {jurisdictionDisplay}
-              {memoryCount > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-tertiary-container/20 text-tertiary rounded text-[10px] font-bold">
-                  {memoryCount} {memoryCount === 1 ? "memory" : "memories"}
-                </span>
-              )}
-            </p>
-          )}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/15">
+        <div className="flex items-center gap-2">
+          <h2 className="font-headline font-bold text-on-surface text-sm">Digital Arborist</h2>
+          <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
         </div>
-        {/* Mode toggle */}
-        <div className="flex gap-1 bg-surface-container-low rounded-full p-1">
+        <div className="flex gap-1 bg-surface-container-low rounded-full p-0.5">
           {(["simple", "pro"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`px-4 py-1.5 rounded-full text-sm font-headline font-medium transition-colors ${
+              className={`px-3 py-1 rounded-full text-xs font-headline font-medium transition-colors ${
                 mode === m
                   ? "bg-surface-container-lowest shadow-sm text-on-surface"
                   : "text-on-surface-variant hover:text-on-surface"
@@ -281,47 +261,40 @@ function ChatInner() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
+      <div className="flex-1 overflow-y-auto space-y-3 p-4">
         {messages.length === 0 && (
-          <div className="text-center text-on-surface-variant pt-16">
-            <p className="text-sm font-body">Ask anything about wildfire preparedness for your property.</p>
+          <div className="text-center text-on-surface-variant pt-8">
+            <p className="text-sm font-body">Ask anything about wildfire preparedness.</p>
           </div>
         )}
 
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[85%] px-5 py-3.5 ${
+              className={`max-w-[90%] px-4 py-3 ${
                 msg.role === "user"
-                  ? "rounded-3xl rounded-tr-sm text-on-primary"
-                  : "bg-surface-container-lowest rounded-3xl rounded-tl-sm shadow-[0_2px_12px_rgba(27,28,26,0.06)]"
+                  ? "rounded-2xl rounded-tr-sm text-on-primary"
+                  : "bg-surface-container-lowest rounded-2xl rounded-tl-sm shadow-[0_2px_12px_rgba(27,28,26,0.06)]"
               }`}
               style={msg.role === "user" ? { background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" } : undefined}
             >
               {msg.role === "assistant" ? (
                 <div>
-                  {/* NWS alert */}
                   {msg.nwsAlert && (
-                    <div className="mb-3 p-3 bg-tertiary-container/15 rounded-xl text-xs text-on-tertiary-container font-body font-medium">
+                    <div className="mb-2 p-2 bg-tertiary-container/15 rounded-lg text-xs text-on-tertiary-container font-body font-medium">
                       {msg.nwsAlert}
                     </div>
                   )}
-
-                  {/* Jurisdiction note */}
                   {msg.jurisdictionNote && (
-                    <div className="mb-3 p-3 bg-primary-container/10 rounded-xl text-xs text-on-primary-container font-body">
+                    <div className="mb-2 p-2 bg-primary-container/10 rounded-lg text-xs text-on-primary-container font-body">
                       {msg.jurisdictionNote}
                     </div>
                   )}
-
-                  {/* Answer */}
                   <div className="text-sm text-on-surface leading-relaxed whitespace-pre-wrap font-body">
                     {renderAnswer(msg.content, msg.citations)}
                   </div>
-
-                  {/* Citations */}
                   {msg.citations && msg.citations.length > 0 && (
-                    <div className="mt-4 space-y-1.5">
+                    <div className="mt-3 space-y-1">
                       <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest font-body">
                         Sources
                       </p>
@@ -346,7 +319,7 @@ function ChatInner() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-surface-container-lowest rounded-3xl rounded-tl-sm px-5 py-4 shadow-[0_2px_12px_rgba(27,28,26,0.06)]">
+            <div className="bg-surface-container-lowest rounded-2xl rounded-tl-sm px-4 py-3 shadow-[0_2px_12px_rgba(27,28,26,0.06)]">
               <div className="flex gap-1.5">
                 <span className="w-2 h-2 bg-outline-variant rounded-full animate-bounce [animation-delay:-0.3s]" />
                 <span className="w-2 h-2 bg-outline-variant rounded-full animate-bounce [animation-delay:-0.15s]" />
@@ -365,48 +338,42 @@ function ChatInner() {
           e.preventDefault();
           handleSend();
         }}
-        className="flex gap-2"
+        className="p-3 border-t border-outline-variant/15"
       >
-        <div className="flex-1 relative">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about vent screening, plants, grants, local code\u2026"
-            className="w-full px-5 py-3.5 pr-12 rounded-2xl bg-surface-container-lowest text-on-surface placeholder:text-outline/60 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-[0_2px_12px_rgba(27,28,26,0.04)] text-sm font-body"
-            disabled={loading}
-          />
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask about vent screening, plants, grants, local code\u2026"
+              className="w-full px-4 py-3 pr-10 rounded-xl bg-surface-container-low text-on-surface placeholder:text-outline/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body"
+              disabled={loading}
+            />
+            <button
+              type="button"
+              onClick={toggleMic}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                listening
+                  ? "bg-tertiary text-on-tertiary animate-pulse"
+                  : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container"
+              }`}
+              title={listening ? "Stop listening" : "Voice input"}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            </button>
+          </div>
           <button
-            type="button"
-            onClick={toggleMic}
-            className={`absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-              listening
-                ? "bg-tertiary text-on-tertiary animate-pulse"
-                : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container"
-            }`}
-            title={listening ? "Stop listening" : "Voice input"}
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="px-5 py-3 text-on-primary rounded-xl font-headline font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+            style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
+            Send
           </button>
         </div>
-        <button
-          type="submit"
-          disabled={loading || !input.trim()}
-          className="px-6 py-3.5 text-on-primary rounded-2xl font-headline font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
-          style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
-        >
-          Send
-        </button>
       </form>
     </div>
-  );
-}
-
-export default function ChatPage() {
-  return (
-    <Suspense fallback={<div className="max-w-3xl mx-auto px-4 py-12 text-center text-on-surface-variant font-body">Loading\u2026</div>}>
-      <ChatInner />
-    </Suspense>
   );
 }

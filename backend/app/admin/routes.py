@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Cookie, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 
 from app.config import get_settings
@@ -14,9 +14,13 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 
-def _check_admin(admin_token: str | None = Cookie(None)):
-    """Verify admin token from cookie."""
-    if not admin_token or admin_token != settings.admin_token:
+def _check_admin(
+    admin_token: str | None = Cookie(None),
+    x_admin_token: str | None = Header(None),
+):
+    """Verify admin token from cookie or X-Admin-Token header."""
+    token = admin_token or x_admin_token
+    if not token or token != settings.admin_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing admin token",
@@ -26,9 +30,8 @@ def _check_admin(admin_token: str | None = Cookie(None)):
 # ── Corpus Sources ──────────────────────────────────────────────────────────
 
 @router.get("/corpus")
-async def list_corpus_sources(admin_token: str | None = Cookie(None)):
+async def list_corpus_sources(_=Depends(_check_admin)):
     """List all corpus sources with status and metadata."""
-    _check_admin(admin_token)
     async with get_db() as db:
         cursor = await db.execute(
             """
@@ -57,11 +60,9 @@ class CorpusSourceUpdate(BaseModel):
 async def update_corpus_source(
     source_id: int,
     update: CorpusSourceUpdate,
-    admin_token: str | None = Cookie(None),
+    _=Depends(_check_admin),
 ):
     """Update corpus source metadata (jurisdiction, trust tier, status)."""
-    _check_admin(admin_token)
-
     fields = []
     params = []
     if update.jurisdiction is not None:
@@ -88,7 +89,6 @@ async def update_corpus_source(
             f"UPDATE corpus_sources SET {', '.join(fields)} WHERE id = ?",
             params,
         )
-        # If document_id is set, also update the documents table
         if update.jurisdiction or update.trust_tier or update.status:
             cursor = await db.execute(
                 "SELECT document_id FROM corpus_sources WHERE id = ?", (source_id,)
@@ -121,12 +121,10 @@ async def update_corpus_source(
 @router.delete("/corpus/{source_id}")
 async def deprecate_corpus_source(
     source_id: int,
-    admin_token: str | None = Cookie(None),
+    _=Depends(_check_admin),
 ):
     """Mark a corpus source as stale (soft-delete)."""
-    _check_admin(admin_token)
     async with get_db() as db:
-        # Also update the documents table if linked
         cursor = await db.execute(
             "SELECT document_id FROM corpus_sources WHERE id = ?", (source_id,)
         )
@@ -146,10 +144,9 @@ async def deprecate_corpus_source(
 @router.get("/corpus/jurisdiction-preview/{jurisdiction_code}")
 async def jurisdiction_chain_preview(
     jurisdiction_code: str,
-    admin_token: str | None = Cookie(None),
+    _=Depends(_check_admin),
 ):
     """Preview the jurisdiction chain for a given code."""
-    _check_admin(admin_token)
     from app.rag.smart_filter import build_jurisdiction_chain
 
     chain = build_jurisdiction_chain(jurisdiction_code)
@@ -159,9 +156,8 @@ async def jurisdiction_chain_preview(
 # ── Plant Management ─────────────────────────────────────────────────────────
 
 @router.post("/plants/sync")
-async def sync_plants(admin_token: str | None = Cookie(None)):
+async def sync_plants(_=Depends(_check_admin)):
     """Trigger LWF plant database sync."""
-    _check_admin(admin_token)
     from app.plant.adapter import sync_lwf_plants
 
     result = await sync_lwf_plants()
@@ -169,9 +165,8 @@ async def sync_plants(admin_token: str | None = Cookie(None)):
 
 
 @router.get("/plants/sync-log")
-async def plant_sync_log(admin_token: str | None = Cookie(None)):
+async def plant_sync_log(_=Depends(_check_admin)):
     """Get the last 10 plant sync events."""
-    _check_admin(admin_token)
     async with get_db() as db:
         cursor = await db.execute(
             """
@@ -194,11 +189,9 @@ class PlantOverride(BaseModel):
 async def override_plant(
     plant_id: str,
     override: PlantOverride,
-    admin_token: str | None = Cookie(None),
+    _=Depends(_check_admin),
 ):
     """Manually override plant attributes (e.g. ashland_restricted)."""
-    _check_admin(admin_token)
-
     fields = []
     params = []
     if override.ashland_restricted is not None:
@@ -227,9 +220,8 @@ async def override_plant(
 # ── Zone Actions ─────────────────────────────────────────────────────────────
 
 @router.get("/zones")
-async def list_zone_actions(admin_token: str | None = Cookie(None)):
+async def list_zone_actions(_=Depends(_check_admin)):
     """List all zone actions grouped by layer."""
-    _check_admin(admin_token)
     async with get_db() as db:
         cursor = await db.execute(
             """
@@ -259,11 +251,9 @@ class ZoneActionUpdate(BaseModel):
 async def update_zone_action(
     action_id: str,
     update: ZoneActionUpdate,
-    admin_token: str | None = Cookie(None),
+    _=Depends(_check_admin),
 ):
     """Update a zone action's content or priority."""
-    _check_admin(admin_token)
-
     fields = []
     params = []
     for field, value in update.model_dump(exclude_none=True).items():

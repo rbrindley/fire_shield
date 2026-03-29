@@ -30,6 +30,11 @@ interface Plant {
 
 const ZONE_LABELS = ["0–5ft", "5–30ft", "30–100ft", "100+ft"];
 
+function getAdminToken() {
+  const match = document.cookie.match(/admin_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
 export default function AdminPlantsPage() {
   const [syncLog, setSyncLog] = useState<SyncLog[]>([]);
   const [syncing, setSyncing] = useState(false);
@@ -43,22 +48,38 @@ export default function AdminPlantsPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
 
   async function loadSyncLog() {
-    const res = await fetch(`${apiUrl}/api/admin/plants/sync-log`, {
-      credentials: "include",
-    });
-    const data = await res.json();
-    setSyncLog(Array.isArray(data) ? data : []);
+    try {
+      const token = getAdminToken();
+      const res = await fetch(`${apiUrl}/api/admin/plants/sync-log`, {
+        credentials: "include",
+        headers: token ? { "X-Admin-Token": token } : {},
+      });
+      if (res.status === 401) {
+        window.location.href = "/admin";
+        return;
+      }
+      const data = await res.json();
+      setSyncLog(Array.isArray(data) ? data : []);
+    } catch {
+      setSyncLog([]);
+    }
   }
 
   async function loadPlants() {
     setLoadingPlants(true);
     try {
+      const token = getAdminToken();
       const qs = new URLSearchParams({ limit: "50", exclude_noxious: "false" });
       if (filterZone) qs.set("zone", filterZone);
       if (filterRestricted) qs.set("exclude_restricted", "false");
-      const res = await fetch(`${apiUrl}/api/plants/search?${qs}`);
+      const res = await fetch(`${apiUrl}/api/plants/search?${qs}`, {
+        credentials: "include",
+        headers: token ? { "X-Admin-Token": token } : {},
+      });
       const data = await res.json();
-      setPlants(data.plants ?? []);
+      setPlants(Array.isArray(data.plants) ? data.plants : []);
+    } catch {
+      setPlants([]);
     } finally {
       setLoadingPlants(false);
     }
@@ -73,9 +94,11 @@ export default function AdminPlantsPage() {
     setSyncing(true);
     setSyncResult("");
     try {
+      const token = getAdminToken();
       const res = await fetch(`${apiUrl}/api/admin/plants/sync`, {
         method: "POST",
         credentials: "include",
+        headers: token ? { "X-Admin-Token": token } : {},
       });
       const data = await res.json();
       setSyncResult(
@@ -91,10 +114,14 @@ export default function AdminPlantsPage() {
   }
 
   async function overridePlant(id: string, field: "ashland_restricted" | "placement_notes", value: boolean | string) {
+    const token = getAdminToken();
     await fetch(`${apiUrl}/api/admin/plants/${id}/override`, {
       method: "PATCH",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "X-Admin-Token": token } : {}),
+      },
       body: JSON.stringify({ [field]: value }),
     });
     await loadPlants();
