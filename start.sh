@@ -138,6 +138,21 @@ check_deps() {
     done
     exit 1
   fi
+
+  # Check for geo deps (geopandas) — needed for building footprints
+  if ! "$ROOT_DIR/backend/.venv/bin/python" -c "import geopandas" 2>/dev/null; then
+    warn "geopandas not installed — installing geo dependencies..."
+    "$ROOT_DIR/backend/.venv/bin/pip" install -q geopandas pyogrio 2>&1 | tail -1
+    ok "Installed geopandas + pyogrio"
+  fi
+
+  # Check for building footprint data
+  if [ ! -f "$ROOT_DIR/backend/data/rogue_valley_buildings.fgb" ] && \
+     [ ! -f "$ROOT_DIR/backend/data/oregon_buildings.fgb" ]; then
+    warn "No building footprint data found. Zone rings will use circles instead of building shapes."
+    echo -e "     To fix: ${BOLD}cd backend && ./scripts/prepare_buildings.sh --rogue-valley${NC}"
+    echo -e "     (requires ogr2ogr: brew install gdal / apt-get install gdal-bin)"
+  fi
 }
 
 # ── Wait for service to be ready ─────────────────────────────────────────────
