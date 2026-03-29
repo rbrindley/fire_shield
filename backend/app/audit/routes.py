@@ -8,7 +8,7 @@ import io
 
 from app.models.audit import AuditLogEntry, AuditExportRequest, PHIOverrideEntry
 from app.auth.dependencies import require_admin
-from app.database import get_db
+from app.config.database import get_db
 
 router = APIRouter()
 

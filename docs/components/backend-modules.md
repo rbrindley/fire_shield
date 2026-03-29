@@ -55,7 +55,6 @@ async with get_db() as db:
 | `profiles.py` | Profile-specific system prompt snippets for `simple`/`pro`/`agent`. |
 | `embedder.py` | `get_embedder()` singleton — loads `BAAI/bge-large-en-v1.5`, respects `EMBEDDING_DEVICE`. |
 | `routes.py` | `POST /api/query/` endpoint. Orchestrates the full pipeline. |
-| `phi_scanner.py` | Detects PHI (PII) in generated responses. |
 | `verify.py` | Response faithfulness verification. |
 
 **Trust tier boost constants** (in `rerank.py`):
@@ -112,11 +111,10 @@ TRUST_TIER_BOOST = {1: 1.20, 2: 1.10, 3: 1.05, 4: 1.00, 5: 0.95, 6: 0.90}
 | File | Responsibility |
 |------|---------------|
 | `pipeline.py` | `ingest_document(doc_id)` — orchestrates extract → chunk → validate → embed → index. Called asynchronously after route returns. |
-| `extractor.py` | PDF text extraction (PyMuPDF) and HTML fetching. |
+| `extractor.py` | PDF text extraction (PyMuPDF) and HTML fetching. CPU-only — no GPU/VRAM logic. |
 | `chunker.py` | Splits extracted text into chunks with section heading detection. |
 | `chunk_validator.py` | Filters out chunks that are too short, too long, or mostly boilerplate. |
 | `indexer.py` | `index_chunks(chunks)` — generates embeddings via `get_embedder()`, upserts to Qdrant with jurisdiction metadata. |
-| `doc_type_detector.py` | Classifies document type (ordinance, guidance, scientific, etc.) for `doc_type` field. |
 | `routes.py` | `POST /api/ingest/url`, `POST /api/ingest/upload`, `GET /api/ingest/status/{id}`. |
 
 ---

@@ -207,7 +207,7 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
         ) : selectedLayerData ? (
           <ZoneCard
             layer={selectedLayerData}
-            neighborNote={selectedLayer === 2 ? zoneData?.neighbor_note : undefined}
+            neighborNote={selectedLayer === 2 || selectedLayer === 3 ? zoneData?.neighbor_note : undefined}
             currentSeason={zoneData?.current_season ?? "spring"}
           />
         ) : null}

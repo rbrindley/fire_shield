@@ -1,4 +1,4 @@
-"""Structure-aware chunking for X12 documents."""
+"""Structure-aware chunking for document pages."""
 
 import re
 import uuid
@@ -14,15 +14,10 @@ class Chunk:
     page_start: int
     page_end: int
     section_title: str | None
-    loop_id: str | None
-    segment_codes: list[str]
     has_table: bool
     token_count: int
 
 
-# X12 patterns for structure detection
-LOOP_PATTERN = re.compile(r"\b(\d{4}[A-Z])\b")  # e.g., 2000A, 2100C
-SEGMENT_PATTERN = re.compile(r"\b([A-Z]{2,3}\d?)\b")  # e.g., NM1, CLM, SV1
 SECTION_HEADER_PATTERN = re.compile(r"^#{1,3}\s+(.+)$", re.MULTILINE)
 
 
@@ -121,14 +116,6 @@ def _create_chunk(
     has_table: bool,
 ) -> Chunk:
     """Create a Chunk object from content."""
-    # Extract X12 patterns
-    loop_ids = LOOP_PATTERN.findall(content)
-    segment_codes = list(set(SEGMENT_PATTERN.findall(content)))
-
-    # Use first loop ID found, or None
-    loop_id = loop_ids[0] if loop_ids else None
-
-    # Estimate token count
     token_count = len(content) // 4
 
     return Chunk(
@@ -137,8 +124,6 @@ def _create_chunk(
         page_start=page_number,
         page_end=page_number,
         section_title=section_title,
-        loop_id=loop_id,
-        segment_codes=segment_codes,
         has_table=has_table,
         token_count=token_count,
     )
@@ -165,8 +150,6 @@ def merge_small_chunks(chunks: list[Chunk], min_tokens: int = 100) -> list[Chunk
                 page_start=current.page_start,
                 page_end=next_chunk.page_end,
                 section_title=current.section_title,
-                loop_id=current.loop_id or next_chunk.loop_id,
-                segment_codes=list(set(current.segment_codes + next_chunk.segment_codes)),
                 has_table=current.has_table or next_chunk.has_table,
                 token_count=current.token_count + next_chunk.token_count,
             )

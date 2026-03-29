@@ -14,6 +14,11 @@ interface PropertyData {
   jurisdiction_chain: string[];
   property_profile_id: string;
   geocode_failed?: boolean;
+  roof_type?: string | null;
+  siding_type?: string | null;
+  has_deck?: boolean | null;
+  has_attached_fence?: boolean | null;
+  slope_category?: string | null;
 }
 
 interface ZoneAction {
@@ -77,6 +82,8 @@ export default function PropertyOverviewPage({
   const [property, setProperty] = useState<PropertyData | null>(null);
   const [zoneData, setZoneData] = useState<ZoneData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -109,6 +116,11 @@ export default function PropertyOverviewPage({
             jurisdiction_display: data.jurisdiction_code ?? "Jackson County, OR",
             jurisdiction_chain: [],
             property_profile_id: data.id,
+            roof_type: data.roof_type ?? null,
+            siding_type: data.siding_type ?? null,
+            has_deck: data.has_deck ? true : data.has_deck === 0 ? false : null,
+            has_attached_fence: data.has_attached_fence ? true : data.has_attached_fence === 0 ? false : null,
+            slope_category: data.slope_category ?? null,
           });
         })
         .catch(console.error);
@@ -196,6 +208,103 @@ export default function PropertyOverviewPage({
         </div>
       </div>
 
+      {/* Property profile */}
+      <div className="mb-6 border border-stone-200 rounded-lg overflow-hidden">
+        <button
+          onClick={() => setProfileOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-4 py-2.5 bg-stone-50 hover:bg-stone-100 transition-colors text-sm font-medium text-stone-700"
+        >
+          <span>About your property</span>
+          <span className="text-stone-400">{profileOpen ? "−" : "+"}</span>
+        </button>
+        {profileOpen && (
+          <form
+            className="px-4 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!property) return;
+              setSaving(true);
+              const form = e.currentTarget;
+              const body: Record<string, unknown> = {};
+              const roofVal = (form.elements.namedItem("roof_type") as HTMLSelectElement).value;
+              const sidingVal = (form.elements.namedItem("siding_type") as HTMLSelectElement).value;
+              const slopeVal = (form.elements.namedItem("slope_category") as HTMLSelectElement).value;
+              const deckVal = (form.elements.namedItem("has_deck") as HTMLInputElement).checked;
+              const fenceVal = (form.elements.namedItem("has_attached_fence") as HTMLInputElement).checked;
+              if (roofVal) body.roof_type = roofVal;
+              if (sidingVal) body.siding_type = sidingVal;
+              if (slopeVal) body.slope_category = slopeVal;
+              body.has_deck = deckVal;
+              body.has_attached_fence = fenceVal;
+              try {
+                const res = await fetch(
+                  `${apiUrl}/api/jurisdiction/profile/${property.property_profile_id}`,
+                  { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+                );
+                if (res.ok) {
+                  const data = await res.json();
+                  setProperty((p) => p ? { ...p, roof_type: data.roof_type, siding_type: data.siding_type, has_deck: !!data.has_deck, has_attached_fence: !!data.has_attached_fence, slope_category: data.slope_category } : p);
+                }
+              } catch { /* ignore */ }
+              setSaving(false);
+            }}
+          >
+            <label className="flex flex-col gap-1">
+              <span className="text-stone-600">Roof type</span>
+              <select name="roof_type" defaultValue={property.roof_type ?? ""} className="border border-stone-300 rounded px-2 py-1.5 bg-white">
+                <option value="">Unknown</option>
+                <option value="asphalt_shingle">Asphalt shingle</option>
+                <option value="metal">Metal</option>
+                <option value="tile">Tile / clay</option>
+                <option value="wood_shake">Wood shake</option>
+                <option value="slate">Slate</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-stone-600">Siding type</span>
+              <select name="siding_type" defaultValue={property.siding_type ?? ""} className="border border-stone-300 rounded px-2 py-1.5 bg-white">
+                <option value="">Unknown</option>
+                <option value="fiber_cement">Fiber cement</option>
+                <option value="stucco">Stucco</option>
+                <option value="brick">Brick / stone</option>
+                <option value="vinyl">Vinyl</option>
+                <option value="wood">Wood</option>
+                <option value="metal">Metal</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-stone-600">Slope category</span>
+              <select name="slope_category" defaultValue={property.slope_category ?? ""} className="border border-stone-300 rounded px-2 py-1.5 bg-white">
+                <option value="">Unknown</option>
+                <option value="flat">Flat (0–5%)</option>
+                <option value="moderate">Moderate (5–20%)</option>
+                <option value="steep">Steep (20–40%)</option>
+                <option value="very_steep">Very steep (40%+)</option>
+              </select>
+            </label>
+            <div className="flex flex-col gap-2 justify-end">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="has_deck" defaultChecked={!!property.has_deck} className="rounded border-stone-300" />
+                <span className="text-stone-600">Has attached deck</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" name="has_attached_fence" defaultChecked={!!property.has_attached_fence} className="rounded border-stone-300" />
+                <span className="text-stone-600">Has attached fence</span>
+              </label>
+            </div>
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-1.5 bg-orange-600 text-white rounded text-sm font-medium hover:bg-orange-700 disabled:opacity-50 transition-colors"
+              >
+                {saving ? "Saving…" : "Save profile"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
       {/* Priority zone cards */}
       {loading ? (
         <div className="text-center text-stone-400 py-12">Loading zone actions…</div>
@@ -208,7 +317,7 @@ export default function PropertyOverviewPage({
             <ZoneCard
               key={layer.layer}
               layer={layer}
-              neighborNote={layer.layer === 2 ? zoneData?.neighbor_note : undefined}
+              neighborNote={layer.layer === 2 || layer.layer === 3 ? zoneData?.neighbor_note : undefined}
               currentSeason={season}
             />
           ))}

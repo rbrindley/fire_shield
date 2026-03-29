@@ -44,7 +44,7 @@ def _season_from_month(month: str) -> str:
         "december": "winter", "january": "winter", "february": "winter",
         "march": "spring", "april": "spring", "may": "spring",
         "june": "summer", "july": "summer", "august": "summer",
-        "september": "fall", "october": "fall", "november": "fall",
+        "september": "summer", "october": "fall", "november": "fall",
     }
     return seasons.get(month, "spring")
 

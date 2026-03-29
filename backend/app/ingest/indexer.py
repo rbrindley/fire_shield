@@ -1,12 +1,10 @@
 """Indexing chunks to SQLite and Qdrant."""
 
-import json
-
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 
 from app.config import get_settings
-from app.database import get_db
+from app.config.database import get_db
 from app.rag.embedder import get_embedder
 from app.ingest.chunker import Chunk
 
@@ -32,9 +30,8 @@ async def _index_to_sqlite(chunks: list[Chunk], doc_version_id: int) -> None:
                 """
                 INSERT INTO chunks (
                     id, doc_version_id, chunk_index, content, content_hash,
-                    page_start, page_end, section_title, loop_id,
-                    segment_codes, has_table, token_count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    page_start, page_end, section_title, has_table, token_count
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     chunk.id,
@@ -45,8 +42,6 @@ async def _index_to_sqlite(chunks: list[Chunk], doc_version_id: int) -> None:
                     chunk.page_start,
                     chunk.page_end,
                     chunk.section_title,
-                    chunk.loop_id,
-                    json.dumps(chunk.segment_codes),
                     int(chunk.has_table),
                     chunk.token_count,
                 ),
@@ -87,7 +82,6 @@ async def _index_to_qdrant(chunks: list[Chunk]) -> None:
             payload={
                 "chunk_id": chunk.id,
                 "section_title": chunk.section_title,
-                "loop_id": chunk.loop_id,
                 "page_start": chunk.page_start,
                 "page_end": chunk.page_end,
             },
@@ -219,13 +213,7 @@ async def delete_document_and_all_versions(document_id: int) -> dict:
             (document_id,),
         )
         
-        # Clear cloud_instance_events references (FK without CASCADE)
-        await db.execute(
-            "UPDATE cloud_instance_events SET document_id = NULL, document_title = NULL WHERE document_id = ?",
-            (document_id,),
-        )
-        
-        # Delete from SQLite (CASCADE handles chunks, extraction_checkpoints, cloud_extraction_audit)
+        # Delete from SQLite (CASCADE handles chunks, extraction_checkpoints)
         await db.execute(
             "DELETE FROM document_versions WHERE document_id = ?",
             (document_id,),
@@ -331,7 +319,7 @@ async def rebuild_qdrant_for_document(doc_version_id: int) -> dict:
         # Get all chunks for this document version
         cursor = await db.execute(
             """
-            SELECT id, content, section_title, loop_id, page_start, page_end
+            SELECT id, content, section_title, page_start, page_end
             FROM chunks WHERE doc_version_id = ?
             ORDER BY chunk_index
             """,
@@ -367,7 +355,6 @@ async def rebuild_qdrant_for_document(doc_version_id: int) -> dict:
                         payload={
                             "chunk_id": row["id"],
                             "section_title": row["section_title"],
-                            "loop_id": row["loop_id"],
                             "page_start": row["page_start"],
                             "page_end": row["page_end"],
                         },

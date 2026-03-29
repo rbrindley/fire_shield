@@ -39,6 +39,19 @@ effective_priority = min(1.0, priority_score + boost)
 
 Actions within each layer are sorted by `effective_priority` descending before returning.
 
+### Season Mapping (`_season_from_month`)
+
+The engine maps each month to a season label for the UI:
+
+| Months | Season Label |
+|---|---|
+| December, January, February | `"winter"` |
+| March, April, May | `"spring"` |
+| June, July, August, September | `"summer"` |
+| October, November | `"fall"` |
+
+Note: September maps to `"summer"` (not `"fall"`) because it falls within fire season (June–September). The fire season months drive the +0.10 boost for Layer 0/1 actions, and the `_season_from_month` mapping drives the UI season labels.
+
 ### Season Override
 
 Passing `season="summer"` overrides the auto-detected season from the current month. This is used by:

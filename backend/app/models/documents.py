@@ -55,7 +55,6 @@ class ChunkResponse(BaseModel):
     page_start: int
     page_end: int
     section_title: str | None
-    loop_id: str | None
     has_table: bool
     document_title: str
     doc_version_id: int | None = None

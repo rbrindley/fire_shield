@@ -51,7 +51,7 @@ async def get_pdf_info(
     current_user: dict = Depends(get_current_user),
 ):
     """Get PDF file path for viewer."""
-    from app.database import get_db
+    from app.config.database import get_db
 
     async with get_db() as db:
         cursor = await db.execute(

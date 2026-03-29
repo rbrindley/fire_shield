@@ -147,7 +147,7 @@ def test_boost_is_not_capped_by_apply_seasonal_boost():
     ("june",     "summer"),
     ("july",     "summer"),
     ("august",   "summer"),
-    ("september","fall"),
+    ("september","summer"),
     ("october",  "fall"),
     ("november", "fall"),
 ])

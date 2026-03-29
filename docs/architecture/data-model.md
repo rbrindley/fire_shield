@@ -58,6 +58,8 @@ Text chunks extracted from documents, indexed for retrieval.
 
 `chunks_fts` — FTS5 virtual table synced via triggers. Columns: `chunk_id`, `content`, `section_title`, `jurisdiction`.
 
+> **Note:** The chunks table also contains `loop_id` and `segment_codes` columns — these are unused vestiges from the original X12 codebase and are not populated or queried.
+
 ### `plants`
 Fire-resistant plant database synced from LWF API. Empty until sync runs.
 

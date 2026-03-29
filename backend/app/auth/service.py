@@ -7,7 +7,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
 from app.config import get_settings
-from app.database import get_db
+from app.config.database import get_db
 
 settings = get_settings()
 ph = PasswordHasher()

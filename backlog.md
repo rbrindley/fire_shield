@@ -16,6 +16,7 @@ These don't require code changes — just ingestion via the admin UI. See [corpu
 - [ ] NFPA 1144 and IBHS Wildfire Prepared Home — tier 2
 - [ ] Peer-reviewed ember intrusion research — tier 3
 - [ ] Run initial LWF plant sync and apply Ashland restriction overrides
+- [x] Property profile UI — now implemented (roof type, siding, deck, fence, slope)
 
 ---
 
@@ -28,6 +29,7 @@ Features with stubs or "Coming soon" placeholders in the current build.
 - [ ] **Bulk re-ingestion queue** — currently single-doc only; add batch URL list ingestion
 - [ ] **Automated stale-doc scoring** — flag documents as stale based on age or URL availability checks (no code written)
 - [ ] **Ingestion error UI** — documents with `status: error` currently show no detail in admin; surface the error message
+- [ ] **Grant/incentive data ingestion** — ingest grant program data + add `include_grants` API param to surface relevant incentives in query responses
 
 ---
 
@@ -60,6 +62,12 @@ Expanding beyond Rogue Valley and adding user accounts for persistent history.
 
 - [ ] Plant search `native=false` behavior is counter-intuitive — currently returns all plants, not non-native only (documented in test; decide if this should change)
 - [ ] MCP `get_zone_actions` with `jurisdiction_code` only (no address) skips geocoding step — `lat`/`lng` are null in response; NWS alerts unavailable in that path
+
+---
+
+## Reference
+
+Original build plan and specification files are stored in `docs/spec/`.
 
 ---
 

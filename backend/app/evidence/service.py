@@ -1,6 +1,6 @@
 """Evidence service for fetching chunk details and context."""
 
-from app.database import get_db
+from app.config.database import get_db
 from app.models.documents import ChunkResponse
 
 
@@ -29,7 +29,6 @@ async def get_chunk_detail(chunk_id: str) -> ChunkResponse | None:
             page_start=row_dict["page_start"],
             page_end=row_dict["page_end"],
             section_title=row_dict["section_title"],
-            loop_id=row_dict["loop_id"],
             has_table=bool(row_dict["has_table"]),
             document_title=row_dict["doc_title"],
             doc_version_id=row_dict["doc_version_id"],

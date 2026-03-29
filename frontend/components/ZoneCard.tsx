@@ -111,7 +111,7 @@ export default function ZoneCard({ layer, neighborNote, currentSeason }: ZoneCar
         })}
       </div>
 
-      {/* Neighbor note for Layer 2 */}
+      {/* Neighbor note for Layers 2 and 3 */}
       {neighborNote && (
         <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-xs text-blue-800 leading-relaxed">
