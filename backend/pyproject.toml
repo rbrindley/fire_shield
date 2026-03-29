@@ -30,6 +30,10 @@ dependencies = [
     "httpx>=0.27.0",
     "anthropic>=0.34.0",
     "aiohttp>=3.9.0",
+
+    # Geospatial — building footprint queries
+    "geopandas>=1.0.0",
+    "pyogrio>=0.9.0",
 ]
 
 [project.optional-dependencies]

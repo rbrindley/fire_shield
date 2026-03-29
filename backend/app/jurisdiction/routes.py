@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.config.database import get_db
-from app.jurisdiction.resolver import resolve_address
+from app.jurisdiction.resolver import resolve_address, resolve_from_coords
 
 router = APIRouter()
 
@@ -15,6 +15,8 @@ router = APIRouter()
 class AddressRequest(BaseModel):
     address: str
     session_id: str | None = None
+    lat: float | None = None
+    lng: float | None = None
 
 
 class PropertyUpdateRequest(BaseModel):
@@ -28,7 +30,10 @@ class PropertyUpdateRequest(BaseModel):
 @router.post("/resolve")
 async def resolve_jurisdiction(req: AddressRequest) -> dict[str, Any]:
     """Geocode an address and resolve its jurisdiction."""
-    resolved = await resolve_address(req.address)
+    if req.lat is not None and req.lng is not None:
+        resolved = await resolve_from_coords(req.lat, req.lng, req.address)
+    else:
+        resolved = await resolve_address(req.address)
 
     # Persist property profile
     profile_id = str(uuid.uuid4())

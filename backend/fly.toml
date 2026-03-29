@@ -24,7 +24,7 @@ primary_region = "sea"
 [[mounts]]
   source = "fire_shield_data"
   destination = "/data"
-  initial_size = "1gb"
+  initial_size = "3gb"
 
 [[services]]
   protocol = "tcp"

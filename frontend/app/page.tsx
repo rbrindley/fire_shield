@@ -23,21 +23,27 @@ export default function Home() {
     setError(null);
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100"}/api/jurisdiction/resolve`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address: address.trim() }),
-        }
-      );
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
+
+      // Support direct lat,lng input (e.g. "42.1946,-122.7095")
+      const latLngMatch = address.trim().match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+
+      const res = await fetch(`${apiUrl}/api/jurisdiction/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          latLngMatch
+            ? { address: address.trim(), lat: parseFloat(latLngMatch[1]), lng: parseFloat(latLngMatch[2]) }
+            : { address: address.trim() }
+        ),
+      });
       if (!res.ok) throw new Error("Failed to resolve address");
       const data = await res.json();
       // Store in sessionStorage for use across pages
       sessionStorage.setItem("property", JSON.stringify(data));
       router.push(`/map?profile=${data.property_profile_id}`);
     } catch {
-      setError("Couldn't locate that address. Try a full street address including city.");
+      setError("Couldn't locate that address. Try a full street address or lat,lng (e.g. 42.19,-122.71).");
     } finally {
       setLoading(false);
     }
@@ -65,7 +71,7 @@ export default function Home() {
             type="text"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="123 Main St, Ashland, OR 97520"
+            placeholder="123 Main St, Ashland, OR 97520 — or lat,lng"
             className="flex-1 px-4 py-3 rounded-lg border border-stone-300 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white shadow-sm"
             disabled={loading}
           />

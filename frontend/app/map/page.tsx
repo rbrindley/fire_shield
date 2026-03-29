@@ -48,6 +48,8 @@ function MapInner() {
   const profileId = searchParams.get("profile");
   const [property, setProperty] = useState<PropertyData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [coordsInput, setCoordsInput] = useState("");
+  const [coordsError, setCoordsError] = useState("");
 
   useEffect(() => {
     // Try sessionStorage first
@@ -56,7 +58,11 @@ function MapInner() {
       try {
         const parsed = JSON.parse(stored) as PropertyData;
         if (!profileId || parsed.property_profile_id === profileId) {
-          setProperty(parsed);
+          setProperty({
+            ...parsed,
+            lat: parsed.lat ?? 42.1946,
+            lng: parsed.lng ?? -122.7095,
+          });
           setLoading(false);
           return;
         }
@@ -88,6 +94,46 @@ function MapInner() {
       setLoading(false);
     }
   }, [profileId]);
+
+  async function handleCoordsSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setCoordsError("");
+    const match = coordsInput.trim().match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+    if (!match) {
+      setCoordsError("Enter coordinates as lat,lng (e.g. 42.1946,-122.7095)");
+      return;
+    }
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      setCoordsError("Latitude must be -90 to 90, longitude -180 to 180");
+      return;
+    }
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
+    try {
+      const res = await fetch(`${apiUrl}/api/jurisdiction/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: property?.display_address ?? coordsInput.trim(),
+          lat,
+          lng,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      sessionStorage.setItem("property", JSON.stringify(data));
+      setProperty({
+        ...data,
+        lat: data.lat ?? lat,
+        lng: data.lng ?? lng,
+        property_profile_id: data.property_profile_id,
+      });
+    } catch {
+      setCoordsError("Failed to resolve location. Try again.");
+    }
+  }
 
   if (loading) {
     return (
@@ -129,9 +175,26 @@ function MapInner() {
             </h1>
             <p className="text-sm text-stone-500">{property.jurisdiction_display}</p>
             {property.geocode_failed && (
-              <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded mt-1 inline-block">
-                ⚠ Address could not be precisely located. Showing approximate location.
-              </p>
+              <form onSubmit={handleCoordsSubmit} className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <p className="text-xs text-amber-800 mb-1.5">
+                  Address could not be precisely located. Drop a pin in Google Maps, copy the coordinates, and paste them here:
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    value={coordsInput}
+                    onChange={(e) => setCoordsInput(e.target.value)}
+                    placeholder="42.1946,-122.7095"
+                    className="flex-1 px-2 py-1 text-xs rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-orange-400"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-1 text-xs bg-orange-600 text-white rounded font-medium hover:bg-orange-700 transition-colors"
+                  >
+                    Update location
+                  </button>
+                </div>
+                {coordsError && <p className="text-xs text-red-600 mt-1">{coordsError}</p>}
+              </form>
             )}
           </div>
           <div className="flex gap-2 flex-shrink-0">
@@ -175,9 +238,9 @@ function MapInner() {
 
       {/* Instructions */}
       <div className="mt-4 p-4 bg-stone-100 rounded-lg text-sm text-stone-600">
-        <span className="font-medium">How to use:</span> Click any ring to see
-        the highest-impact actions for that zone. Start with Layer 0 (the house
-        itself) — it&apos;s where most homes are lost.
+        <span className="font-medium">How to use:</span> Select a zone from the
+        panel on the right to see prioritized actions. Start with Layer 0 (the
+        house itself) — it&apos;s where most homes are lost.
       </div>
     </div>
   );

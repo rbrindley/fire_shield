@@ -2,10 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system deps for pypdf/pdfminer
+# Install system deps for PDF extraction and geospatial
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmupdf-dev \
-    && rm -rf /var/lib/lib/apt/lists/*
+    libgdal-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Python deps
 COPY pyproject.toml .

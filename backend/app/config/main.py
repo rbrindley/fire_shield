@@ -68,6 +68,10 @@ def create_app() -> FastAPI:
     from app.nursery.routes import router as nursery_router
     app.include_router(nursery_router, prefix="/api/nursery", tags=["nursery"])
 
+    # Building footprints
+    from app.building.routes import router as building_router
+    app.include_router(building_router, prefix="/api/buildings", tags=["buildings"])
+
     @app.get("/health")
     async def health_check():
         return {"status": "healthy", "app": "fire_shield", "version": "1.0.0"}

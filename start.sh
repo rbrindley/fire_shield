@@ -204,7 +204,10 @@ start_backend() {
   (
     cd "$ROOT_DIR/backend"
     .venv/bin/uvicorn app.config.main:app --reload --port "$BACKEND_PORT" 2>&1 | \
-      sed "s/^/  ${CYAN}[backend]${NC} /"
+      sed -u "s/^INFO: *//" | \
+      while IFS= read -r line; do
+        printf "  INFO  ${CYAN}[backend]${NC}  %s  %s\n" "$(date +%H:%M:%S)" "$line"
+      done
   ) &
   BACKEND_PID=$!
   PIDS+=("$BACKEND_PID")
@@ -225,7 +228,11 @@ start_frontend() {
   (
     cd "$ROOT_DIR/frontend"
     npx next dev -p "$FRONTEND_PORT" 2>&1 | \
-      sed "s/^/  ${GREEN}[frontend]${NC} /"
+      while IFS= read -r line; do
+        level="INFO"
+        case "$line" in *error*|*Error*|*ERROR*) level="ERROR";; *warn*|*Warn*|*WARN*) level="WARN ";; esac
+        printf "  %s  ${GREEN}[frontend]${NC}  %s  %s\n" "$level" "$(date +%H:%M:%S)" "$line"
+      done
   ) &
   FRONTEND_PID=$!
   PIDS+=("$FRONTEND_PID")
@@ -251,7 +258,9 @@ start_mcp() {
     cd "$ROOT_DIR/mcp_server"
     FIRE_SHIELD_API_URL="http://localhost:$BACKEND_PORT" MCP_PORT="$MCP_PORT" \
       node index.js 2>&1 | \
-      sed "s/^/  ${YELLOW}[mcp]${NC} /"
+      while IFS= read -r line; do
+        printf "  INFO  ${YELLOW}[mcp]${NC}      %s  %s\n" "$(date +%H:%M:%S)" "$line"
+      done
   ) &
   MCP_PID=$!
   PIDS+=("$MCP_PID")
