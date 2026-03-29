@@ -43,8 +43,10 @@ async function apiFetch(path, options = {}) {
   return response.json();
 }
 
-// ── MCP Server ───────────────────────────────────────────────────────────────
+// ── MCP Server Factory ──────────────────────────────────────────────────────
+// Each SSE connection gets its own McpServer instance (SDK requires 1:1 server:transport)
 
+function createServer() {
 const server = new McpServer({
   name: "fire-shield",
   version: "1.0.0",
@@ -195,14 +197,16 @@ server.tool(
 // Tool: nursery_lookup
 server.tool(
   "nursery_lookup",
-  "Search Nature Hills Nursery for a fire-resistant plant. Returns a direct link to search results and, when available, product names with prices.",
+  "Search Nature Hills Nursery for a fire-resistant plant. Returns product names, prices, and direct links. Extract quantity from the user's message (default 1).",
   {
     plant_name: z.string().describe("Common name of the plant to search for, e.g. 'Ceanothus'"),
     scientific_name: z.string().optional().describe("Scientific name for more precise results"),
+    quantity: z.number().int().min(1).optional().describe("Number of plants to order (default 1)"),
   },
   async (params) => {
     const qs = new URLSearchParams({ plant: params.plant_name });
     if (params.scientific_name) qs.set("scientific_name", params.scientific_name);
+    if (params.quantity) qs.set("quantity", String(params.quantity));
 
     const data = await apiFetch(`/api/nursery/search?${qs}`);
 
@@ -214,6 +218,7 @@ server.tool(
             plant_name: data.plant_name,
             search_url: data.search_url,
             products: data.products || [],
+            quantity: data.quantity || params.quantity || 1,
             source: data.source,
           }, null, 2),
         },
@@ -221,6 +226,9 @@ server.tool(
     };
   }
 );
+
+return server;
+}
 
 function resolveJurisdictionNote(jurisdictionCode) {
   const citySpecific = ["ashland", "jacksonville", "medford", "talent", "phoenix", "central_point", "eagle_point"];
@@ -251,13 +259,14 @@ const httpServer = http.createServer(async (req, res) => {
   if (url.pathname === "/sse" && req.method === "GET") {
     const transport = new SSEServerTransport("/messages", res);
     const sessionId = transport.sessionId;
+    const mcpServer = createServer();
     transports.set(sessionId, transport);
 
     res.on("close", () => {
       transports.delete(sessionId);
     });
 
-    await server.connect(transport);
+    await mcpServer.connect(transport);
     return;
   }
 
