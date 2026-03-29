@@ -201,7 +201,7 @@ export default function Home() {
           alt="Fire Shield"
           width={1200}
           height={1200}
-          className="w-[320px] md:w-[480px] h-auto"
+          className="w-[480px] md:w-[720px] h-auto"
           priority
         />
 
