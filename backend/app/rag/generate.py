@@ -27,7 +27,7 @@ TRUST HIERARCHY: Local code (Tier 1) > Agency guidance (Tier 2) > Fire science e
 Source headers show [TIER-n-TYPE] — higher-trust sources take precedence when they conflict.
 
 {profile_instructions}
-
+{memory_section}
 SOURCES:
 {chunks_text}
 """
@@ -42,6 +42,7 @@ async def generate_answer(
     profile: str,
     lat: float | None = None,
     lng: float | None = None,
+    memory_context: str | None = None,
 ) -> tuple[str, list[Citation], str | None, str | None]:
     """Generate answer using Claude with jurisdiction context and NWS tool-use.
 
@@ -80,10 +81,19 @@ async def generate_answer(
         f"If city-specific docs are not in the corpus, note this and apply county + state + universal guidance."
     )
 
+    memory_section = ""
+    if memory_context:
+        memory_section = (
+            "\nPROPERTY MEMORY (facts remembered from previous conversations):\n"
+            + memory_context
+            + "\n"
+        )
+
     system_prompt = WILDFIRE_SYSTEM_PROMPT.format(
         jurisdiction_context=jurisdiction_context,
         profile_instructions=profile_instructions,
         chunks_text=chunks_text,
+        memory_section=memory_section,
     )
 
     # NWS tool-use: fetch live fire weather if lat/lng provided

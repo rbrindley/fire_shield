@@ -8,6 +8,7 @@ const links = [
   { href: "/map", label: "Map & Zones" },
   { href: "/plants", label: "Plants" },
   { href: "/chat", label: "Ask" },
+  { href: "/build", label: "Build" },
 ];
 
 export default function Nav() {

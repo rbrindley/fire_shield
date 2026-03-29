@@ -1,5 +1,6 @@
 """RAG query routes."""
 
+import asyncio
 import time
 
 from fastapi import APIRouter, HTTPException, status
@@ -66,6 +67,15 @@ async def query(request: QueryRequest):
     # Reranking
     reranked_chunks = await rerank_chunks(request.question, chunks)
 
+    # Load conversation memory if property profile provided
+    memory_context = None
+    if request.property_profile_id:
+        try:
+            from app.memory.service import format_memory_context
+            memory_context = await format_memory_context(request.property_profile_id)
+        except Exception:
+            pass  # Memory is non-critical
+
     # Generation
     generation_start = time.time()
     answer, citations, jurisdiction_note, nws_alert = await generate_answer(
@@ -77,9 +87,20 @@ async def query(request: QueryRequest):
         profile=request.profile,
         lat=request.lat,
         lng=request.lng,
+        memory_context=memory_context,
     )
     generation_time_ms = int((time.time() - generation_start) * 1000)
     total_time_ms = int((time.time() - start_time) * 1000)
+
+    # Fire memory extraction as background task (non-blocking)
+    if request.property_profile_id and settings.anthropic_api_key:
+        try:
+            from app.memory.extractor import extract_memories
+            asyncio.create_task(
+                extract_memories(request.question, answer, request.property_profile_id)
+            )
+        except Exception:
+            pass  # Memory extraction is non-critical
 
     return QueryResponse(
         answer=answer,

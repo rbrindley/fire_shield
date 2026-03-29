@@ -6,6 +6,7 @@
  * Tools:
  *   - search_plants: Query the fire-resistant plant database
  *   - get_zone_actions: Get HIZ zone actions for a property address or lat/lng
+ *   - nursery_lookup: Search Nature Hills Nursery for a plant by name
  *
  * Usage:
  *   node index.js
@@ -180,6 +181,36 @@ server.tool(
             lng,
             property_profile_id: propertyProfileId,
             zones: zones,
+          }, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Tool: nursery_lookup
+server.tool(
+  "nursery_lookup",
+  "Search Nature Hills Nursery for a fire-resistant plant. Returns a direct link to search results and, when available, product names with prices.",
+  {
+    plant_name: z.string().describe("Common name of the plant to search for, e.g. 'Ceanothus'"),
+    scientific_name: z.string().optional().describe("Scientific name for more precise results"),
+  },
+  async (params) => {
+    const qs = new URLSearchParams({ plant: params.plant_name });
+    if (params.scientific_name) qs.set("scientific_name", params.scientific_name);
+
+    const data = await apiFetch(`/api/nursery/search?${qs}`);
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            plant_name: data.plant_name,
+            search_url: data.search_url,
+            products: data.products || [],
+            source: data.source,
           }, null, 2),
         },
       ],

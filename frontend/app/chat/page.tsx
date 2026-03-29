@@ -37,20 +37,32 @@ function ChatInner() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"simple" | "pro">("simple");
   const [jurisdictionDisplay, setJurisdictionDisplay] = useState<string | null>(null);
+  const [memoryCount, setMemoryCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Load jurisdiction from stored property
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+  // Load jurisdiction from stored property + fetch memory count
   useEffect(() => {
     const stored = sessionStorage.getItem("property");
     if (stored) {
       try {
         const p = JSON.parse(stored);
         setJurisdictionDisplay(p.jurisdiction_display ?? null);
+
+        // Fetch memory count if we have a profile ID
+        const pid = p.property_profile_id ?? profileId;
+        if (pid) {
+          fetch(`${apiUrl}/api/memory/${pid}`)
+            .then((r) => r.json())
+            .then((data) => setMemoryCount(data.count ?? 0))
+            .catch(() => {});
+        }
       } catch {
         // ignore
       }
     }
-  }, []);
+  }, [apiUrl, profileId]);
 
   // Auto-submit initial question
   useEffect(() => {
@@ -90,7 +102,6 @@ function ChatInner() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
       const res = await fetch(`${apiUrl}/api/query/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -115,6 +126,16 @@ function ChatInner() {
         nwsAlert: data.nws_alert,
       };
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Refresh memory count after a short delay (extraction runs async)
+      if (profileId) {
+        setTimeout(() => {
+          fetch(`${apiUrl}/api/memory/${profileId}`)
+            .then((r) => r.json())
+            .then((d) => setMemoryCount(d.count ?? 0))
+            .catch(() => {});
+        }, 3000);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -172,7 +193,14 @@ function ChatInner() {
         <div>
           <h1 className="font-bold text-stone-900">Ask Fire Shield</h1>
           {jurisdictionDisplay && (
-            <p className="text-xs text-stone-500">{jurisdictionDisplay}</p>
+            <p className="text-xs text-stone-500">
+              {jurisdictionDisplay}
+              {memoryCount > 0 && (
+                <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-medium">
+                  {memoryCount} {memoryCount === 1 ? "memory" : "memories"}
+                </span>
+              )}
+            </p>
           )}
         </div>
         {/* Mode toggle */}

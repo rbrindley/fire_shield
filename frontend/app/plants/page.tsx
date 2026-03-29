@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import CitationLink from "@/components/CitationLink";
+import type { jsPDF as JsPDFType } from "jspdf";
 
 interface Plant {
   id: string;
@@ -88,6 +89,74 @@ function PlantsInner() {
 
   const zoneKeys = ["zone_0_5ft", "zone_5_30ft", "zone_30_100ft", "zone_100ft_plus"] as const;
 
+  const getZones = useCallback((p: Plant) => {
+    return zoneKeys.filter((k) => p[k]).map((k) => ZONE_LABELS[k]).join(", ");
+  }, []);
+
+  function exportCSV() {
+    const header = "Common Name,Scientific Name,Type,Zones,Water Need,Native,Deer Resistant,Fire Behavior Notes\n";
+    const rows = plants
+      .map((p) =>
+        [
+          `"${p.common_name}"`,
+          `"${p.scientific_name ?? ""}"`,
+          p.plant_type ?? "",
+          `"${getZones(p)}"`,
+          p.water_need ?? "",
+          p.is_native ? "Yes" : "No",
+          p.deer_resistant ? "Yes" : "No",
+          `"${(p.fire_behavior_notes ?? "").replace(/"/g, '""')}"`,
+        ].join(",")
+      )
+      .join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fire-shield-plants-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportPDF() {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
+    const doc = new jsPDF({ orientation: "landscape" }) as JsPDFType & { lastAutoTable: { finalY: number } };
+    doc.setFontSize(18);
+    doc.text("Fire Shield — Fire-Resistant Plants", 14, 18);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated ${new Date().toLocaleDateString()}${jurisdictionFromUrl ? ` · ${jurisdictionFromUrl}` : ""}`, 14, 25);
+    doc.setTextColor(0);
+
+    autoTable(doc, {
+      startY: 30,
+      head: [["Common Name", "Scientific Name", "Type", "Zones", "Water", "Native", "Deer Res.", "Fire Notes"]],
+      body: plants.map((p) => [
+        p.common_name,
+        p.scientific_name ?? "",
+        p.plant_type ?? "",
+        getZones(p),
+        p.water_need ?? "",
+        p.is_native ? "Yes" : "",
+        p.deer_resistant ? "Yes" : "",
+        (p.fire_behavior_notes ?? "").slice(0, 80) + ((p.fire_behavior_notes?.length ?? 0) > 80 ? "…" : ""),
+      ]),
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [234, 88, 12] },
+    });
+
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text(
+      "Source: Living with Fire plant database. Consult a local nursery for site-specific advice.",
+      14,
+      doc.lastAutoTable.finalY + 8,
+    );
+
+    doc.save(`fire-shield-plants-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold text-stone-900 mb-1">Fire-Resistant Plants</h1>
@@ -150,6 +219,25 @@ function PlantsInner() {
           ))}
         </div>
       </div>
+
+      {/* Export buttons */}
+      {plants.length > 0 && !loading && (
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={exportCSV}
+            className="px-3 py-1.5 text-sm border border-stone-300 text-stone-600 rounded-lg hover:bg-stone-50 transition-colors"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={exportPDF}
+            className="px-3 py-1.5 text-sm border border-stone-300 text-stone-600 rounded-lg hover:bg-stone-50 transition-colors"
+          >
+            Export PDF
+          </button>
+          <span className="text-xs text-stone-400 self-center">{plants.length} plants</span>
+        </div>
+      )}
 
       {/* Results */}
       {loading && (
@@ -253,16 +341,24 @@ function PlantsInner() {
               </p>
             )}
 
-            {/* Citation */}
-            {plant.source_url && (
-              <div className="mt-2">
+            {/* Links */}
+            <div className="mt-2 flex items-center gap-2">
+              {plant.source_url && (
                 <CitationLink
-                  citation="Living with Fire plant database"
+                  citation="Living with Fire"
                   type="structured_data"
                   url={plant.source_url}
                 />
-              </div>
-            )}
+              )}
+              <a
+                href={`https://www.naturehills.com/catalogsearch/result/?q=${encodeURIComponent(plant.common_name)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded hover:bg-green-100 transition-colors"
+              >
+                Find at nursery
+              </a>
+            </div>
           </div>
         ))}
       </div>
