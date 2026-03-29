@@ -4,10 +4,12 @@ import { useState } from "react";
 
 interface AddressBarProps {
   address: string | null;
+  areaType?: "urban" | "rural";
+  neighborDistance?: number;
   onAddressChange: (data: { lat: number; lng: number; address: string; jurisdiction_code: string; jurisdiction_display: string; property_profile_id?: string }) => void;
 }
 
-export default function AddressBar({ address, onAddressChange }: AddressBarProps) {
+export default function AddressBar({ address, areaType, neighborDistance, onAddressChange }: AddressBarProps) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
@@ -85,6 +87,22 @@ export default function AddressBar({ address, onAddressChange }: AddressBarProps
       <span className="text-sm text-on-surface font-body truncate">
         {address || "No address set"}
       </span>
+      {address && (areaType || neighborDistance != null) && (
+        <span className="text-xs text-on-surface-variant font-body flex items-center gap-1.5 flex-shrink-0">
+          {areaType && (
+            <span className={`px-1.5 py-0.5 rounded-full ${areaType === "urban" ? "bg-secondary-container/30" : "bg-tertiary-container/20"}`}>
+              {areaType === "urban" ? "Urban" : "Rural"}
+            </span>
+          )}
+          {neighborDistance != null && (
+            <span className="text-outline">
+              {neighborDistance < 1000
+                ? `${Math.round(neighborDistance)}m to neighbor`
+                : `${(neighborDistance / 1000).toFixed(1)}km to neighbor`}
+            </span>
+          )}
+        </span>
+      )}
       <button
         onClick={() => setEditing(true)}
         className="ml-auto text-xs text-primary hover:text-on-primary-container font-medium flex-shrink-0"

@@ -161,9 +161,14 @@ def _normalize_plant(raw: dict) -> dict | None:
     urls = raw.get("urls", [])
     source_url = urls[0] if urls else None
 
-    # Primary image
+    # Primary image — API may return a string URL or an object with .url
     primary_image = raw.get("primaryImage")
-    primary_image_url = primary_image.get("url") if primary_image else None
+    if isinstance(primary_image, str):
+        primary_image_url = primary_image
+    elif isinstance(primary_image, dict):
+        primary_image_url = primary_image.get("url")
+    else:
+        primary_image_url = None
 
     return {
         "id": plant_id,
@@ -214,14 +219,19 @@ async def sync_lwf_plants() -> dict:
             resp.raise_for_status()
             data = resp.json()
 
-            # API may return list or {plants: [...], total: n}
+            # API may return list, {data: [], meta: {pagination: {}}} or {plants: [], total: n}
             if isinstance(data, list):
                 batch = data
                 has_more = False
             else:
-                batch = data.get("plants", data.get("data", []))
-                total = data.get("total", len(batch))
-                has_more = (params["offset"] + len(batch)) < total
+                batch = data.get("data", data.get("plants", []))
+                meta = data.get("meta", {})
+                pagination = meta.get("pagination", {})
+                if "hasMore" in pagination:
+                    has_more = pagination["hasMore"]
+                else:
+                    total = pagination.get("total", data.get("total", len(batch)))
+                    has_more = (params["offset"] + len(batch)) < total
 
             all_plants.extend(batch)
             logger.info("Fetched %d plants (total so far: %d)", len(batch), len(all_plants))
@@ -297,10 +307,10 @@ async def sync_lwf_plants() -> dict:
         # Record sync in plant_sync_log
         await db.execute(
             """
-            INSERT INTO plant_sync_log (synced_at, plants_upserted, plants_skipped, errors, status)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO plant_sync_log (synced_at, plants_upserted, plants_new, plants_unchanged, status, error_message)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (now, upserted, skipped, errors, "success" if errors == 0 else "partial"),
+            (now, upserted, upserted, skipped, "success" if errors == 0 else "partial", f"{errors} errors" if errors else None),
         )
         await db.commit()
 

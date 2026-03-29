@@ -42,6 +42,16 @@ interface ResourceLink {
   url?: string;
 }
 
+interface PropertyContext {
+  address_mentioned?: string;
+  lat?: number;
+  lng?: number;
+  jurisdiction_code?: string;
+  jurisdiction_display?: string;
+  area_type?: "urban" | "rural";
+  nearest_neighbor_distance_m?: number;
+}
+
 export interface QueryResponse {
   answer: string;
   citations: Citation[];
@@ -49,6 +59,7 @@ export interface QueryResponse {
   nws_alert?: string;
   intent?: IntentClassification;
   resource_links?: ResourceLink[];
+  property_context?: PropertyContext;
 }
 
 interface Message {
@@ -67,15 +78,21 @@ const MODE_LABELS: Record<string, string> = {
 interface ChatPanelProps {
   initialQuestion?: string;
   profileId?: string;
+  profile?: string;
   onQueryResponse?: (response: QueryResponse) => void;
+  address?: string | null;
+  onAddressChange?: (data: { lat: number; lng: number; address: string; jurisdiction_code: string }) => void;
 }
 
-export default function ChatPanel({ initialQuestion, profileId, onQueryResponse }: ChatPanelProps) {
+export default function ChatPanel({ initialQuestion, profileId, profile, onQueryResponse, address, onAddressChange }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"simple" | "pro">("simple");
   const [listening, setListening] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(false);
+  const [addressInput, setAddressInput] = useState("");
+  const [addressLoading, setAddressLoading] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sentInitialRef = useRef(false);
@@ -84,7 +101,9 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
 
   const toggleMic = useCallback(() => {
     if (listening && recognitionRef.current) {
-      recognitionRef.current.stop();
+      const ref = recognitionRef.current;
+      recognitionRef.current = null;
+      ref.stop();
       setListening(false);
       return;
     }
@@ -94,21 +113,35 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
     if (!SpeechRecognition) return;
 
     const recognition: SpeechRecognitionInstance = new SpeechRecognition();
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
     recognitionRef.current = recognition;
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
+      let final = "";
+      let interim = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i];
+        if ((result as unknown as { isFinal: boolean }).isFinal) {
+          final += result[0].transcript;
+        } else {
+          interim += result[0].transcript;
+        }
       }
-      setInput(transcript);
+      setInput(final + interim);
     };
 
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => setListening(false);
+    recognition.onend = () => {
+      // In continuous mode, browser may stop after silence — restart if still listening
+      if (recognitionRef.current) {
+        try { recognitionRef.current.start(); } catch { setListening(false); }
+      }
+    };
+    recognition.onerror = (event: Event & { error: string }) => {
+      if (event.error === "no-speech") return; // silence timeout, onend will restart
+      setListening(false);
+    };
 
     recognition.start();
     setListening(true);
@@ -116,8 +149,10 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
 
   // Send initial question once
   useEffect(() => {
+    console.log("[ChatPanel] useEffect initialQuestion:", initialQuestion, "sentInitialRef:", sentInitialRef.current);
     if (initialQuestion && !sentInitialRef.current) {
       sentInitialRef.current = true;
+      console.log("[ChatPanel] Calling handleSend with initial question");
       handleSend(initialQuestion);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,7 +164,11 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
 
   async function handleSend(text?: string) {
     const question = (text ?? input).trim();
-    if (!question || loading) return;
+    console.log("[ChatPanel] handleSend called, question:", question?.slice(0, 50), "loading:", loading);
+    if (!question || loading) {
+      console.log("[ChatPanel] handleSend BAILED — question empty:", !question, "loading:", loading);
+      return;
+    }
     setInput("");
     setLoading(true);
 
@@ -158,15 +197,17 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
         body: JSON.stringify({
           question,
           jurisdiction_code: jurisdictionCode,
-          profile: mode,
+          profile: profile ?? mode,
           property_profile_id: profileId || undefined,
           lat,
           lng,
         }),
       });
 
+      console.log("[ChatPanel] fetch response status:", res.status);
       if (!res.ok) throw new Error("Query failed");
       const data = await res.json();
+      console.log("[ChatPanel] response data keys:", Object.keys(data), "answer length:", data.answer?.length, "property_context:", data.property_context);
 
       const assistantMessage: Message = {
         role: "assistant",
@@ -177,7 +218,7 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Notify parent of the full response (intent + resource_links)
+      // Notify parent of the full response (intent + resource_links + property_context)
       onQueryResponse?.({
         answer: data.answer,
         citations: data.citations ?? [],
@@ -185,6 +226,7 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
         nws_alert: data.nws_alert,
         intent: data.intent,
         resource_links: data.resource_links,
+        property_context: data.property_context,
       });
     } catch {
       setMessages((prev) => [
@@ -197,6 +239,29 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
       ]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAddressSubmit() {
+    const addr = addressInput.trim();
+    if (!addr || addressLoading) return;
+    setAddressLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/jurisdiction/resolve?address=${encodeURIComponent(addr)}`);
+      if (!res.ok) throw new Error("Resolve failed");
+      const data = await res.json();
+      onAddressChange?.({
+        lat: data.lat,
+        lng: data.lng,
+        address: addr,
+        jurisdiction_code: data.jurisdiction_code ?? "jackson_county",
+      });
+      setEditingAddress(false);
+      setAddressInput("");
+    } catch {
+      // keep editing open
+    } finally {
+      setAddressLoading(false);
     }
   }
 
@@ -237,27 +302,50 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/15">
-        <div className="flex items-center gap-2">
-          <h2 className="font-headline font-bold text-on-surface text-sm">Digital Arborist</h2>
-          <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-        </div>
-        <div className="flex gap-1 bg-surface-container-low rounded-full p-0.5">
-          {(["simple", "pro"] as const).map((m) => (
+      {/* Address bar */}
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-outline-variant/15 bg-surface-container-low">
+        {editingAddress ? (
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleAddressSubmit(); }}
+            className="flex items-center gap-2 flex-1"
+          >
+            <input
+              value={addressInput}
+              onChange={(e) => setAddressInput(e.target.value)}
+              placeholder="Enter an address..."
+              autoFocus
+              className="flex-1 px-3 py-1.5 rounded-lg border border-outline-variant/30 text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 bg-surface-container-lowest"
+            />
             <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={`px-3 py-1 rounded-full text-xs font-headline font-medium transition-colors ${
-                mode === m
-                  ? "bg-surface-container-lowest shadow-sm text-on-surface"
-                  : "text-on-surface-variant hover:text-on-surface"
-              }`}
+              type="submit"
+              disabled={addressLoading || !addressInput.trim()}
+              className="px-3 py-1.5 rounded-lg text-xs font-headline font-medium text-on-primary disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
             >
-              {MODE_LABELS[m]}
+              {addressLoading ? "..." : "Set"}
             </button>
-          ))}
-        </div>
+            <button
+              type="button"
+              onClick={() => { setEditingAddress(false); setAddressInput(""); }}
+              className="px-2 py-1.5 rounded-lg text-xs text-on-surface-variant hover:text-on-surface"
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <>
+            <span className="text-xs font-headline font-medium text-on-surface-variant">Current Address:</span>
+            <span className="text-xs font-body text-on-surface truncate flex-1">
+              {address || "Not set"}
+            </span>
+            <button
+              onClick={() => { setEditingAddress(true); setAddressInput(address ?? ""); }}
+              className="text-xs px-2 py-1 rounded-lg border border-outline-variant/30 text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-headline font-medium shrink-0"
+            >
+              Change
+            </button>
+          </>
+        )}
       </div>
 
       {/* Messages */}
@@ -332,48 +420,73 @@ export default function ChatPanel({ initialQuestion, profileId, onQueryResponse 
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSend();
-        }}
-        className="p-3 border-t border-outline-variant/15"
-      >
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about vent screening, plants, grants, local code\u2026"
-              className="w-full px-4 py-3 pr-10 rounded-xl bg-surface-container-low text-on-surface placeholder:text-outline/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body"
-              disabled={loading}
-            />
+      {/* Input + mode toggle */}
+      <div className="p-3 border-t border-outline-variant/15">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+        >
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (input.trim()) handleSend();
+                  }
+                }}
+                placeholder="Ask about vent screening, plants, grants, local code\u2026"
+                rows={3}
+                className="w-full px-4 py-3 pr-10 rounded-xl bg-surface-container-low text-on-surface placeholder:text-outline/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body resize-none"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={toggleMic}
+                className={`absolute right-2 top-3 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                  listening
+                    ? "bg-tertiary text-on-tertiary animate-pulse"
+                    : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container"
+                }`}
+                title={listening ? "Stop listening" : "Voice input"}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </button>
+            </div>
             <button
-              type="button"
-              onClick={toggleMic}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                listening
-                  ? "bg-tertiary text-on-tertiary animate-pulse"
-                  : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container"
-              }`}
-              title={listening ? "Stop listening" : "Voice input"}
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="px-5 self-end py-3 text-on-primary rounded-xl font-headline font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+              style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
+              Send
             </button>
           </div>
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            className="px-5 py-3 text-on-primary rounded-xl font-headline font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
-            style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
-          >
-            Send
-          </button>
+        </form>
+        <div className="flex items-center justify-center gap-1 mt-2">
+          <div className="flex gap-1 bg-surface-container-low rounded-full p-0.5">
+            {(["simple", "pro"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={`px-3 py-1 rounded-full text-xs font-headline font-medium transition-colors ${
+                  mode === m
+                    ? "bg-surface-container-lowest shadow-sm text-on-surface"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                {MODE_LABELS[m]}
+              </button>
+            ))}
+          </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

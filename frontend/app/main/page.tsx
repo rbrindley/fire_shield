@@ -42,6 +42,8 @@ function MainInner() {
   const [lat, setLat] = useState<number | undefined>();
   const [lng, setLng] = useState<number | undefined>();
   const [jurisdictionCode, setJurisdictionCode] = useState<string | undefined>();
+  const [areaType, setAreaType] = useState<"urban" | "rural" | undefined>();
+  const [neighborDistance, setNeighborDistance] = useState<number | undefined>();
 
   // Load property from sessionStorage on mount
   useEffect(() => {
@@ -53,6 +55,8 @@ function MainInner() {
         setLat(p.lat);
         setLng(p.lng);
         setJurisdictionCode(p.jurisdiction_code);
+        setAreaType(p.area_type);
+        setNeighborDistance(p.nearest_neighbor_distance_m);
       } catch {
         // ignore
       }
@@ -78,6 +82,28 @@ function MainInner() {
     }
     if (response.resource_links && response.resource_links.length > 0) {
       setResourceLinks(response.resource_links);
+    }
+    // Auto-set property when backend detects an address in the query
+    const ctx = response.property_context;
+    if (ctx) {
+      if (ctx.address_mentioned) setAddress(ctx.address_mentioned);
+      if (ctx.lat) setLat(ctx.lat);
+      if (ctx.lng) setLng(ctx.lng);
+      if (ctx.jurisdiction_code) setJurisdictionCode(ctx.jurisdiction_code);
+      if (ctx.area_type) setAreaType(ctx.area_type);
+      if (ctx.nearest_neighbor_distance_m != null) setNeighborDistance(ctx.nearest_neighbor_distance_m);
+      // Persist to sessionStorage
+      const stored = sessionStorage.getItem("property");
+      const existing = stored ? JSON.parse(stored) : {};
+      sessionStorage.setItem("property", JSON.stringify({
+        ...existing,
+        ...(ctx.lat && { lat: ctx.lat }),
+        ...(ctx.lng && { lng: ctx.lng }),
+        ...(ctx.jurisdiction_code && { jurisdiction_code: ctx.jurisdiction_code }),
+        ...(ctx.address_mentioned && { address: ctx.address_mentioned }),
+        ...(ctx.area_type && { area_type: ctx.area_type }),
+        ...(ctx.nearest_neighbor_distance_m != null && { nearest_neighbor_distance_m: ctx.nearest_neighbor_distance_m }),
+      }));
     }
   }, []);
 
@@ -108,11 +134,11 @@ function MainInner() {
       {/* Left panel — resources */}
       <div className="flex-1 flex flex-col min-w-0 md:border-r border-outline-variant/15 min-h-0">
         {/* Address bar */}
-        <AddressBar address={address} onAddressChange={handleAddressChange} />
+        <AddressBar address={address} areaType={areaType} neighborDistance={neighborDistance} onAddressChange={handleAddressChange} />
 
         {/* Resource list */}
         {resourceLinks.length > 0 && (
-          <div className="px-4 py-3 border-b border-outline-variant/15">
+          <div className="px-4 py-3 border-b border-outline-variant/15 max-h-[25%] overflow-y-auto shrink-0">
             <ResourceList links={resourceLinks} onLinkClick={handleResourceLinkClick} />
           </div>
         )}
@@ -149,6 +175,8 @@ function MainInner() {
           initialQuestion={initialQ || undefined}
           profileId={profileId || undefined}
           onQueryResponse={handleQueryResponse}
+          address={address}
+          onAddressChange={handleAddressChange}
         />
       </div>
 

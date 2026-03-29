@@ -170,7 +170,7 @@ async def plant_sync_log(_=Depends(_check_admin)):
     async with get_db() as db:
         cursor = await db.execute(
             """
-            SELECT synced_at, plants_upserted, plants_skipped, errors, status
+            SELECT synced_at, plants_upserted, plants_new, plants_unchanged, status, error_message
             FROM plant_sync_log
             ORDER BY synced_at DESC
             LIMIT 10

@@ -22,9 +22,17 @@ class AddressRequest(BaseModel):
 class PropertyUpdateRequest(BaseModel):
     roof_type: str | None = None
     siding_type: str | None = None
+    structure_type: str | None = None
     has_deck: bool | None = None
+    deck_material: str | None = None
+    deck_enclosed: bool | None = None
     has_attached_fence: bool | None = None
+    fence_material: str | None = None
     slope_category: str | None = None
+    environment: str | None = None
+    outbuildings: str | None = None  # JSON string
+    year_built: str | None = None
+    owner_goals: str | None = None
 
 
 @router.post("/resolve")
@@ -65,24 +73,13 @@ async def resolve_jurisdiction(req: AddressRequest) -> dict[str, Any]:
 @router.patch("/profile/{profile_id}")
 async def update_profile(profile_id: str, req: PropertyUpdateRequest) -> dict[str, Any]:
     """Update property profile details (roof type, siding, etc.)."""
+    bool_fields = {"has_deck", "has_attached_fence", "deck_enclosed"}
     updates: list[str] = []
     params: list[Any] = []
 
-    if req.roof_type is not None:
-        updates.append("roof_type = ?")
-        params.append(req.roof_type)
-    if req.siding_type is not None:
-        updates.append("siding_type = ?")
-        params.append(req.siding_type)
-    if req.has_deck is not None:
-        updates.append("has_deck = ?")
-        params.append(1 if req.has_deck else 0)
-    if req.has_attached_fence is not None:
-        updates.append("has_attached_fence = ?")
-        params.append(1 if req.has_attached_fence else 0)
-    if req.slope_category is not None:
-        updates.append("slope_category = ?")
-        params.append(req.slope_category)
+    for field, value in req.model_dump(exclude_none=True).items():
+        updates.append(f"{field} = ?")
+        params.append(int(value) if field in bool_fields else value)
 
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")

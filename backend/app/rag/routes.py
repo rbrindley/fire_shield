@@ -1,15 +1,17 @@
 """RAG query routes."""
 
 import asyncio
+import logging
 import time
 
 from fastapi import APIRouter, HTTPException, status
 
 from app.config import get_settings
-from app.models.query import QueryRequest, QueryResponse, ResourceLink
+from app.models.query import PropertyContext, QueryRequest, QueryResponse, ResourceLink
 
 router = APIRouter()
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 _DEFAULT_RESOURCES: dict[str, list[dict]] = {
     "plants": [
@@ -39,20 +41,14 @@ _DEFAULT_RESOURCES: dict[str, list[dict]] = {
 
 
 def _merge_resource_links(
-    llm_links: list[ResourceLink], intent: str, max_total: int = 10,
+    llm_links: list[ResourceLink], intent: str,
 ) -> list[ResourceLink]:
-    """Merge LLM-generated links with hardcoded defaults, up to max_total."""
-    result = list(llm_links)
-    seen_titles = {link.title.lower() for link in result}
+    """Use LLM-generated links if available, fall back to defaults for intent."""
+    if llm_links:
+        return llm_links[:5]
 
-    for default in _DEFAULT_RESOURCES.get(intent, []):
-        if len(result) >= max_total:
-            break
-        if default["title"].lower() not in seen_titles:
-            result.append(ResourceLink(**default))
-            seen_titles.add(default["title"].lower())
-
-    return result[:max_total]
+    # Fallback: hardcoded defaults only when LLM returned nothing
+    return [ResourceLink(**d) for d in _DEFAULT_RESOURCES.get(intent, [])]
 
 
 @router.post("/", response_model=QueryResponse)
@@ -121,7 +117,7 @@ async def query(request: QueryRequest):
 
     # Generation
     generation_start = time.time()
-    answer, citations, jurisdiction_note, nws_alert, intent, resource_links = await generate_answer(
+    answer, citations, jurisdiction_note, nws_alert, intent, resource_links, address_mentioned = await generate_answer(
         question=request.question,
         chunks=reranked_chunks,
         jurisdiction_code=request.jurisdiction_code,
@@ -134,6 +130,13 @@ async def query(request: QueryRequest):
     )
     generation_time_ms = int((time.time() - generation_start) * 1000)
     total_time_ms = int((time.time() - start_time) * 1000)
+
+    logger.info(
+        "LLM result — intent=%s, address_mentioned=%r, resource_links=%d",
+        intent.primary_intent if intent else None,
+        address_mentioned,
+        len(resource_links),
+    )
 
     # Merge LLM resource suggestions with hardcoded defaults
     intent_name = intent.primary_intent if intent else "general"
@@ -149,6 +152,23 @@ async def query(request: QueryRequest):
         except Exception:
             pass  # Memory extraction is non-critical
 
+    # Enrich property context if address detected or coordinates available
+    property_context = None
+    if address_mentioned:
+        try:
+            logger.info("Enriching property context for address: %r", address_mentioned)
+            property_context = await _enrich_property_context(address_mentioned)
+            logger.info("Property context result: %s", property_context)
+        except Exception as e:
+            logger.error("Property context enrichment failed: %s", e, exc_info=True)
+    elif request.lat is not None and request.lng is not None:
+        try:
+            property_context = _enrich_from_coords(
+                request.lat, request.lng, request.jurisdiction_code,
+            )
+        except Exception as e:
+            logger.error("Coord enrichment failed: %s", e, exc_info=True)
+
     return QueryResponse(
         answer=answer,
         citations=citations,
@@ -156,8 +176,56 @@ async def query(request: QueryRequest):
         nws_alert=nws_alert,
         intent=intent,
         resource_links=merged_links,
+        property_context=property_context,
         profile_used=request.profile,
         retrieval_time_ms=retrieval_time_ms,
         generation_time_ms=generation_time_ms,
         total_time_ms=total_time_ms,
     )
+
+
+async def _enrich_property_context(address: str) -> PropertyContext | None:
+    """Resolve an address mentioned in the query and enrich with context."""
+    from app.building.context import classify_area_type, find_nearest_neighbor_distance
+    from app.jurisdiction.resolver import resolve_address
+
+    resolved = await resolve_address(address)
+    if resolved.get("geocode_failed"):
+        return None
+
+    lat = resolved.get("lat")
+    lng = resolved.get("lng")
+    jurisdiction_code = resolved.get("jurisdiction_code", "jackson_county")
+
+    area_type = classify_area_type(jurisdiction_code)
+    neighbor_dist = find_nearest_neighbor_distance(lat, lng) if lat and lng else None
+
+    return PropertyContext(
+        address_mentioned=address,
+        lat=lat,
+        lng=lng,
+        jurisdiction_code=jurisdiction_code,
+        jurisdiction_display=resolved.get("jurisdiction_display"),
+        area_type=area_type,
+        nearest_neighbor_distance_m=neighbor_dist,
+    )
+
+
+def _enrich_from_coords(
+    lat: float, lng: float, jurisdiction_code: str,
+) -> PropertyContext | None:
+    """Enrich context from already-known coordinates."""
+    from app.building.context import classify_area_type, find_nearest_neighbor_distance
+
+    area_type = classify_area_type(jurisdiction_code)
+    neighbor_dist = find_nearest_neighbor_distance(lat, lng)
+
+    if area_type or neighbor_dist is not None:
+        return PropertyContext(
+            lat=lat,
+            lng=lng,
+            jurisdiction_code=jurisdiction_code,
+            area_type=area_type,
+            nearest_neighbor_distance_m=neighbor_dist,
+        )
+    return None

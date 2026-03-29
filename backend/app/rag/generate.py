@@ -33,7 +33,7 @@ SOURCES:
 
 INTENT CLASSIFICATION:
 After your answer, on a new line emit exactly one JSON block fenced like this:
-<!-- INTENT_JSON: {{"intent": "...", "confidence": 0.0, "resource_suggestions": [...]}} -->
+<!-- INTENT_JSON: {{"intent": "...", "confidence": 0.0, "resource_suggestions": [...], "address_mentioned": null}} -->
 - intent: one of "map", "plants", "zones", "build", "property", "general"
   - "map" = user wants to see their property map, zone rings, or satellite view
   - "plants" = user asks about fire-resistant plants, landscaping, vegetation
@@ -42,7 +42,8 @@ After your answer, on a new line emit exactly one JSON block fenced like this:
   - "property" = user asks about their specific property assessment or profile
   - "general" = everything else (grants, insurance, general preparedness)
 - confidence: 0.0 to 1.0
-- resource_suggestions: array of 1-5 objects with "title", "description", "intent_tag" fields
+- resource_suggestions: array of 2-4 objects with "title", "description", "intent_tag" fields. These are contextual next-step links shown to the user. Tailor them to the specific question — e.g. if the user asks about roof vents, suggest "Vent screening guide" (zones) and "Fire-resistant roofing plants" (plants), NOT generic links. Each object needs: "title" (short action label), "description" (1 sentence why it's relevant to THIS question), "intent_tag" (one of: map, plants, zones, build, general). Only suggest what's genuinely useful as a follow-up.
+- address_mentioned: If the user mentions a street address, city+state, or coordinates in their message, extract it verbatim as a string. Otherwise null. Examples: "123 Oak St, Ashland OR", "42.1945, -122.7095". Do NOT fabricate addresses.
 """
 
 
@@ -56,11 +57,11 @@ async def generate_answer(
     lat: float | None = None,
     lng: float | None = None,
     memory_context: str | None = None,
-) -> tuple[str, list[Citation], str | None, str | None, IntentClassification | None, list[ResourceLink]]:
+) -> tuple[str, list[Citation], str | None, str | None, IntentClassification | None, list[ResourceLink], str | None]:
     """Generate answer using Claude with jurisdiction context and NWS tool-use.
 
     Returns:
-        (renumbered_answer, citations, jurisdiction_note, nws_alert, intent, resource_links)
+        (renumbered_answer, citations, jurisdiction_note, nws_alert, intent, resource_links, address_mentioned)
     """
     chunks_text, number_to_id = _format_chunks_for_context(chunks)
     profile_instructions = get_profile_instructions(profile)
@@ -115,10 +116,10 @@ async def generate_answer(
         nws_alert = await _fetch_nws_alert(lat, lng)
 
     answer = await _generate_claude(system_prompt, question, nws_alert)
-    cleaned_answer, intent, resource_links = _extract_intent_and_resources(answer)
+    cleaned_answer, intent, resource_links, address_mentioned = _extract_intent_and_resources(answer)
     renumbered_answer, citations = _extract_citations_and_renumber(cleaned_answer, chunks, number_to_id)
 
-    return renumbered_answer, citations, jurisdiction_note, nws_alert, intent, resource_links
+    return renumbered_answer, citations, jurisdiction_note, nws_alert, intent, resource_links, address_mentioned
 
 
 _INTENT_PATTERN = re.compile(r"<!--\s*INTENT_JSON:\s*(\{.*?\})\s*-->", re.DOTALL)
@@ -128,14 +129,14 @@ _VALID_INTENTS = {"map", "plants", "zones", "build", "property", "general"}
 
 def _extract_intent_and_resources(
     answer: str,
-) -> tuple[str, IntentClassification | None, list[ResourceLink]]:
+) -> tuple[str, IntentClassification | None, list[ResourceLink], str | None]:
     """Parse the <!-- INTENT_JSON: ... --> block from the LLM answer.
 
-    Returns (cleaned_answer, intent, resource_links). Falls back gracefully.
+    Returns (cleaned_answer, intent, resource_links, address_mentioned). Falls back gracefully.
     """
     match = _INTENT_PATTERN.search(answer)
     if not match:
-        return answer, None, []
+        return answer, None, [], None
 
     cleaned = answer[: match.start()].rstrip() + answer[match.end() :]
     cleaned = cleaned.rstrip()
@@ -164,9 +165,11 @@ def _extract_intent_and_resources(
                     )
                 )
 
-        return cleaned, intent, resource_links
+        address_mentioned = data.get("address_mentioned") or None
+
+        return cleaned, intent, resource_links, address_mentioned
     except (json.JSONDecodeError, ValueError, TypeError):
-        return cleaned, None, []
+        return cleaned, None, [], None
 
 
 def _format_chunks_for_context(chunks: list[dict]) -> tuple[str, dict[int, str]]:
@@ -237,12 +240,211 @@ async def _fetch_nws_alert(lat: float, lng: float) -> str | None:
     return None
 
 
+PLANT_SEARCH_TOOL = {
+    "name": "search_plants",
+    "description": (
+        "Search Fire Shield's fire-resistant plant database. Use this when the user asks about "
+        "specific plants, plant recommendations, landscaping, what to plant in a zone, "
+        "pollinators, native plants, or whether a specific plant is suitable. "
+        "Returns plants with zone eligibility, fire behavior notes, and traits."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Plant name or keyword search (e.g. 'aloe', 'lavender', 'oak')",
+            },
+            "zone": {
+                "type": "string",
+                "enum": ["zone_0_5ft", "zone_5_30ft", "zone_30_100ft", "zone_100ft_plus"],
+                "description": "Filter to plants eligible for this HIZ zone",
+            },
+            "native": {
+                "type": "boolean",
+                "description": "Filter to Oregon native plants only",
+            },
+            "deer_resistant": {
+                "type": "boolean",
+                "description": "Filter to deer-resistant plants only",
+            },
+            "pollinator_support": {
+                "type": "boolean",
+                "description": "Filter to plants that support pollinators",
+            },
+            "sun": {
+                "type": "string",
+                "enum": ["full", "partial", "shade"],
+                "description": "Filter by sun requirement",
+            },
+            "water_need": {
+                "type": "string",
+                "enum": ["low", "medium", "high"],
+                "description": "Filter by water need",
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Max results to return (default 10)",
+            },
+        },
+        "required": [],
+    },
+}
+
+
+NURSERY_LOOKUP_TOOL = {
+    "name": "nursery_lookup",
+    "description": (
+        "Search Nature Hills Nursery for a plant to check price and availability. "
+        "Use this when the user asks about buying, ordering, or pricing a plant. "
+        "Returns product names, prices, and direct links to the nursery website."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "plant_name": {
+                "type": "string",
+                "description": "Common name of the plant (e.g. 'aloe', 'lavender', 'ceanothus')",
+            },
+            "scientific_name": {
+                "type": "string",
+                "description": "Optional scientific name for more precise results",
+            },
+        },
+        "required": ["plant_name"],
+    },
+}
+
+
+async def _execute_nursery_lookup(tool_input: dict) -> str:
+    """Search Nature Hills Nursery and return formatted results."""
+    from app.nursery.service import search_nursery
+
+    result = await search_nursery(
+        tool_input["plant_name"],
+        tool_input.get("scientific_name"),
+    )
+
+    if result["products"]:
+        lines = [f"Nature Hills Nursery results for '{result['plant_name']}':"]
+        for p in result["products"]:
+            price = p.get("price", "price not available")
+            lines.append(f"- {p['name']} — {price} — {p['url']}")
+        lines.append(f"\nDirect search link: {result['search_url']}")
+        return "\n".join(lines)
+    else:
+        return (
+            f"No exact products found for '{result['plant_name']}' at Nature Hills. "
+            f"The user can browse search results directly: {result['search_url']}"
+        )
+
+
+async def _execute_plant_search(tool_input: dict) -> str:
+    """Execute a plant search against the local database and return formatted results."""
+    from app.config.database import get_db
+
+    conditions = []
+    params: list = []
+
+    if tool_input.get("query"):
+        like = f"%{tool_input['query']}%"
+        conditions.append("(common_name LIKE ? OR scientific_name LIKE ? OR fire_behavior_notes LIKE ?)")
+        params.extend([like, like, like])
+
+    valid_zones = {"zone_0_5ft", "zone_5_30ft", "zone_30_100ft", "zone_100ft_plus"}
+    if tool_input.get("zone") in valid_zones:
+        conditions.append(f"{tool_input['zone']} = 1")
+
+    if tool_input.get("native"):
+        conditions.append("is_native = 1")
+    if tool_input.get("deer_resistant"):
+        conditions.append("deer_resistant = 1")
+    if tool_input.get("pollinator_support"):
+        conditions.append("pollinator_support = 1")
+    if tool_input.get("sun"):
+        conditions.append("sun = ?")
+        params.append(tool_input["sun"])
+    if tool_input.get("water_need"):
+        conditions.append("water_need = ?")
+        params.append(tool_input["water_need"])
+
+    conditions.append("is_noxious_weed = 0")
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    limit = min(tool_input.get("limit", 10), 20)
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            f"""
+            SELECT common_name, scientific_name, plant_type,
+                   zone_0_5ft, zone_5_30ft, zone_30_100ft, zone_100ft_plus,
+                   water_need, is_native, deer_resistant, pollinator_support,
+                   sun, mature_height_max_ft, fire_behavior_notes,
+                   ashland_restricted, ashland_restriction_type
+            FROM plants {where}
+            ORDER BY (zone_0_5ft + zone_5_30ft) DESC, is_native DESC,
+                     CASE water_need WHEN 'low' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END ASC,
+                     common_name ASC
+            LIMIT ? OFFSET 0
+            """,
+            (*params, limit),
+        )
+        rows = await cursor.fetchall()
+
+        count_cursor = await db.execute(f"SELECT COUNT(*) FROM plants {where}", params)
+        total = (await count_cursor.fetchone())[0]
+
+    if not rows:
+        return f"No plants found matching those criteria. Total plants in database: check if plant sync has been run."
+
+    lines = [f"Found {total} plants matching criteria (showing top {len(rows)}):"]
+    lines.append("")
+    for row in rows:
+        r = dict(row)
+        zones = []
+        if r["zone_0_5ft"]:
+            zones.append("0-5ft")
+        if r["zone_5_30ft"]:
+            zones.append("5-30ft")
+        if r["zone_30_100ft"]:
+            zones.append("30-100ft")
+        if r["zone_100ft_plus"]:
+            zones.append("100ft+")
+
+        traits = []
+        if r["is_native"]:
+            traits.append("Oregon native")
+        if r["deer_resistant"]:
+            traits.append("deer resistant")
+        if r["pollinator_support"]:
+            traits.append("pollinator")
+        if r["water_need"]:
+            traits.append(f"{r['water_need']} water")
+        if r["sun"]:
+            traits.append(f"{r['sun']} sun")
+        if r["ashland_restricted"]:
+            traits.append(f"Ashland restricted ({r['ashland_restriction_type']})")
+
+        name = r["common_name"]
+        sci = f" ({r['scientific_name']})" if r["scientific_name"] else ""
+        ptype = f" [{r['plant_type']}]" if r["plant_type"] else ""
+        height = f", max {r['mature_height_max_ft']}ft" if r["mature_height_max_ft"] else ""
+
+        lines.append(f"- **{name}**{sci}{ptype}")
+        lines.append(f"  Zones: {', '.join(zones) or 'none specified'}{height}")
+        lines.append(f"  Traits: {', '.join(traits) or 'none'}")
+        if r["fire_behavior_notes"]:
+            lines.append(f"  Fire notes: {r['fire_behavior_notes']}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 async def _generate_claude(
     system_prompt: str,
     question: str,
     nws_alert: str | None = None,
 ) -> str:
-    """Generate using Claude API."""
+    """Generate using Claude API with plant search tool use."""
     from anthropic import AsyncAnthropic
 
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
@@ -251,14 +453,56 @@ async def _generate_claude(
     if nws_alert:
         user_content = f"[Active NWS Alert: {nws_alert}]\n\n{question}"
 
+    messages = [{"role": "user", "content": user_content}]
+
+    # First call — may return text or a tool_use request
     response = await client.messages.create(
         model=settings.claude_model,
         max_tokens=4096,
         system=system_prompt,
-        messages=[{"role": "user", "content": user_content}],
+        messages=messages,
+        tools=[PLANT_SEARCH_TOOL, NURSERY_LOOKUP_TOOL],
     )
 
-    return response.content[0].text
+    tool_handlers = {
+        "search_plants": _execute_plant_search,
+        "nursery_lookup": _execute_nursery_lookup,
+    }
+
+    # Handle tool use loop (max 3 rounds to prevent runaway)
+    for _ in range(3):
+        if response.stop_reason != "tool_use":
+            break
+
+        # Collect all tool calls and execute them
+        tool_results = []
+        assistant_content = response.content
+        for block in assistant_content:
+            if block.type == "tool_use" and block.name in tool_handlers:
+                result = await tool_handlers[block.name](block.input)
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": result,
+                })
+
+        if not tool_results:
+            break
+
+        messages.append({"role": "assistant", "content": assistant_content})
+        messages.append({"role": "user", "content": tool_results})
+
+        response = await client.messages.create(
+            model=settings.claude_model,
+            max_tokens=4096,
+            system=system_prompt,
+            messages=messages,
+            tools=[PLANT_SEARCH_TOOL, NURSERY_LOOKUP_TOOL],
+        )
+
+    # Extract final text from response
+    text_parts = [block.text for block in response.content if hasattr(block, "text")]
+    return "\n".join(text_parts)
 
 
 def _extract_citations_and_renumber(

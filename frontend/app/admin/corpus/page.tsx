@@ -132,6 +132,24 @@ export default function CorpusPage() {
     await loadSources();
   }
 
+  async function reingest(id: number) {
+    const token = getAdminToken();
+    try {
+      const res = await fetch(`${apiUrl}/api/ingest/reingest/${id}`, {
+        method: "POST",
+        credentials: "include",
+        headers: token ? { "X-Admin-Token": token } : {},
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(`Re-ingest failed: ${data.detail || res.statusText}`);
+      }
+    } catch {
+      alert("Re-ingest request failed");
+    }
+    await loadSources();
+  }
+
   async function handleIngest(e: React.FormEvent) {
     e.preventDefault();
     setIngestLoading(true);
@@ -227,6 +245,14 @@ export default function CorpusPage() {
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex gap-1">
+                      {s.source_url && (
+                        <button
+                          onClick={() => reingest(s.id)}
+                          className="text-xs px-2 py-1 border border-blue-300 rounded hover:bg-blue-50 text-blue-700"
+                        >
+                          Re-ingest
+                        </button>
+                      )}
                       {s.status !== "stale" ? (
                         <button
                           onClick={() => deprecate(s.id)}

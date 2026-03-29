@@ -7,6 +7,8 @@ import { useState, useRef, useEffect } from "react";
 
 const links = [
   { href: "/main", label: "Dashboard" },
+  { href: "/teachers", label: "For Teachers" },
+  { href: "/agents", label: "For Agents" },
   { href: "/about", label: "About" },
 ];
 
@@ -82,7 +84,13 @@ export default function Nav() {
     router.push("/");
   }
 
-  // Nav is visible on all pages including landing
+  function isActiveLink(href: string) {
+    if (href.includes("?")) {
+      const [path, qs] = href.split("?");
+      return pathname === path && typeof window !== "undefined" && window.location.search === "?" + qs;
+    }
+    return pathname === href;
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl">
@@ -98,7 +106,7 @@ export default function Nav() {
                 key={l.href}
                 href={l.href}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === l.href
+                  isActiveLink(l.href)
                     ? "bg-primary/10 text-primary"
                     : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
                 }`}

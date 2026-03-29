@@ -1,8 +1,11 @@
 """Hybrid retrieval: FTS5 + vector search with jurisdiction chain filtering."""
 
+import logging
+
 from app.config.database import get_db
 from app.config import get_settings
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
@@ -44,7 +47,11 @@ async def retrieve_chunks(
 ) -> list[dict]:
     """Retrieve chunks using hybrid search (FTS5 + vector), filtered by jurisdiction chain."""
     fts_results = await _fts_search(query, jurisdiction_chain)
-    vector_results = await _vector_search(query, jurisdiction_chain)
+    try:
+        vector_results = await _vector_search(query, jurisdiction_chain)
+    except Exception as e:
+        logger.warning(f"Vector search failed (falling back to FTS only): {e}")
+        vector_results = []
 
     seen_ids = set()
     merged = []
@@ -67,13 +74,14 @@ async def _fts_search(query: str, jurisdiction_chain: list[str]) -> list[dict]:
         placeholders = ",".join("?" * len(jurisdiction_chain))
         cursor = await db.execute(
             f"""
-            SELECT c.id, c.document_id, c.chunk_index, c.content,
+            SELECT c.id, dv.document_id, c.chunk_index, c.content,
                    c.section_title, c.jurisdiction, c.trust_tier,
                    d.title as doc_title, d.source_url,
                    bm25(chunks_fts) as score
             FROM chunks_fts fts
             JOIN chunks c ON fts.chunk_id = c.id
-            JOIN documents d ON c.document_id = d.id
+            JOIN document_versions dv ON c.doc_version_id = dv.id
+            JOIN documents d ON dv.document_id = d.id
             WHERE chunks_fts MATCH ?
               AND c.jurisdiction IN ({placeholders})
               AND d.status = 'active'
@@ -133,11 +141,12 @@ async def _vector_search(query: str, jurisdiction_chain: list[str]) -> list[dict
         placeholders = ",".join("?" * len(chunk_ids))
         cursor = await db.execute(
             f"""
-            SELECT c.id, c.document_id, c.chunk_index, c.content,
+            SELECT c.id, dv.document_id, c.chunk_index, c.content,
                    c.section_title, c.jurisdiction, c.trust_tier,
                    d.title as doc_title, d.source_url
             FROM chunks c
-            JOIN documents d ON c.document_id = d.id
+            JOIN document_versions dv ON c.doc_version_id = dv.id
+            JOIN documents d ON dv.document_id = d.id
             WHERE c.id IN ({placeholders})
               AND d.status = 'active'
             """,

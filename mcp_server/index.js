@@ -22,7 +22,11 @@ const { SSEServerTransport } = require("@modelcontextprotocol/sdk/server/sse.js"
 const { z } = require("zod");
 
 const API_URL = process.env.FIRE_SHIELD_API_URL || "http://localhost:8100";
-const PORT = parseInt(process.env.MCP_PORT || "3101", 10);
+const PORT = parseInt(process.env.PORT || process.env.MCP_PORT || "3101", 10);
+
+// TODO: Add bearer token authentication for production
+// Validate Authorization header against a shared secret before executing tools
+// TODO: Add rate limiting (e.g., express-rate-limit) for production deployment
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 
@@ -290,8 +294,9 @@ const httpServer = http.createServer(async (req, res) => {
   res.end("Not found");
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`Fire Shield MCP server listening on port ${PORT}`);
+httpServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`Fire Shield MCP server listening on 0.0.0.0:${PORT}`);
   console.log(`SSE endpoint: http://localhost:${PORT}/sse`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`Backend API: ${API_URL}`);
 });

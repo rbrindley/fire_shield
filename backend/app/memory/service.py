@@ -82,12 +82,56 @@ async def delete_memory(memory_id: int) -> bool:
 
 
 async def format_memory_context(property_profile_id: str) -> str | None:
-    """Load and format memories as a string for injection into the RAG prompt."""
-    memories = await get_memories(property_profile_id, limit=30)
-    if not memories:
-        return None
+    """Load property profile + memories and format for injection into the RAG prompt."""
+    sections = []
 
-    lines = []
-    for m in memories:
-        lines.append(f"- [{m['memory_type']}] {m['memory_key']}: {m['memory_value']}")
-    return "\n".join(lines)
+    # Load property profile
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT * FROM property_profiles WHERE id = ?", (property_profile_id,)
+        )
+        profile = await cursor.fetchone()
+
+    if profile:
+        profile = dict(profile)
+        profile_lines = []
+        if profile.get("address"):
+            profile_lines.append(f"Address: {profile['address']}")
+        if profile.get("jurisdiction_code"):
+            profile_lines.append(f"Jurisdiction: {profile['jurisdiction_code']}")
+        for field, label in [
+            ("structure_type", "Structure"),
+            ("roof_type", "Roof"),
+            ("siding_type", "Siding"),
+            ("environment", "Environment"),
+            ("slope_category", "Slope"),
+            ("year_built", "Year built"),
+        ]:
+            if profile.get(field):
+                profile_lines.append(f"{label}: {profile[field]}")
+        if profile.get("has_deck"):
+            deck = "Yes"
+            if profile.get("deck_material"):
+                deck += f", {profile['deck_material']}"
+            if profile.get("deck_enclosed"):
+                deck += ", enclosed underneath"
+            profile_lines.append(f"Deck: {deck}")
+        if profile.get("has_attached_fence"):
+            fence = "Yes"
+            if profile.get("fence_material"):
+                fence += f", {profile['fence_material']}"
+            profile_lines.append(f"Attached fence: {fence}")
+        if profile.get("owner_goals"):
+            profile_lines.append(f"Goals: {profile['owner_goals']}")
+        if profile_lines:
+            sections.append("Property:\n" + "\n".join(f"- {l}" for l in profile_lines))
+
+    # Load conversation memories
+    memories = await get_memories(property_profile_id, limit=30)
+    if memories:
+        mem_lines = []
+        for m in memories:
+            mem_lines.append(f"- [{m['memory_type']}] {m['memory_key']}: {m['memory_value']}")
+        sections.append("Past context:\n" + "\n".join(mem_lines))
+
+    return "\n\n".join(sections) if sections else None

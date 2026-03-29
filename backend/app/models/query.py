@@ -47,6 +47,18 @@ class ResourceLink(BaseModel):
     url: str | None = None
 
 
+class PropertyContext(BaseModel):
+    """Enriched property context derived from the user's query."""
+
+    address_mentioned: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    jurisdiction_code: str | None = None
+    jurisdiction_display: str | None = None
+    area_type: Literal["urban", "rural"] | None = None
+    nearest_neighbor_distance_m: float | None = None
+
+
 class QueryResponse(BaseModel):
     """Query response payload."""
 
@@ -56,6 +68,7 @@ class QueryResponse(BaseModel):
     nws_alert: str | None = None
     intent: IntentClassification | None = None
     resource_links: list[ResourceLink] = []
+    property_context: PropertyContext | None = None
     profile_used: str
     retrieval_time_ms: int
     generation_time_ms: int

@@ -31,6 +31,9 @@
 ## Agent Web Layer
 - [Full Content Dump](/api/llms-full): Complete plant database + zone actions + key evidence as Markdown
   (Content-Type: text/markdown; use Accept: text/markdown header on any content page)
+- [OpenAPI Spec](/api/openapi.json): Machine-readable API schema (proxied from FastAPI backend)
+- [For Agents](/agents): Agent integration guide — discovery, MCP, REST API, permissions
+- [AGENTS.md](https://github.com/fire-shield/fire-shield/blob/main/AGENTS.md): Instructions for coding agents working on this codebase
 
 ## About
 - [How Fire Shield Works](/about/llms.txt): Architecture, data sources, citation methodology

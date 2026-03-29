@@ -1,8 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+
+interface SpeechRecognitionEvent extends Event {
+  results: { [index: number]: { [index: number]: { transcript: string } }; length: number };
+  resultIndex: number;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: Event & { error: string }) => void) | null;
+}
 
 const HELPER_EXAMPLES = [
   "What are the biggest bang-for-the-buck protection steps?",
@@ -11,11 +27,18 @@ const HELPER_EXAMPLES = [
   "Who can help me assess my home\u2019s fire risk?",
 ];
 
-function looksLikeAddress(input: string): boolean {
+function looksLikePureAddress(input: string): boolean {
+  const trimmed = input.trim();
+  // Lat,lng is always a pure address
   const latLng = /^-?\d+\.?\d*\s*,\s*-?\d+\.?\d*$/;
-  if (latLng.test(input.trim())) return true;
+  if (latLng.test(trimmed)) return true;
+  // If it contains question words or is long with non-address text, it's a question
+  // that happens to mention an address — let the backend classifier handle it
+  if (/\b(what|how|can|should|do|does|is|are|help|protect|plant|screen|vent|roof|zone)\b/i.test(trimmed)) return false;
+  if (trimmed.length > 80) return false;
+  // Short input that looks like a street address
   const streetPattern = /\d+\s+\w+.*(st|ave|rd|dr|blvd|ln|way|ct|pl|street|avenue|road|drive|boulevard|lane|court|place)\b/i;
-  return streetPattern.test(input.trim());
+  return streetPattern.test(trimmed);
 }
 
 export default function Home() {
@@ -25,6 +48,58 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: "address"; value: string } | { type: "question"; value: string } | null>(null);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+
+  const toggleMic = useCallback(() => {
+    if (listening && recognitionRef.current) {
+      const ref = recognitionRef.current;
+      recognitionRef.current = null;
+      ref.stop();
+      setListening(false);
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition: SpeechRecognitionInstance = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognitionRef.current = recognition;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let final = "";
+      let interim = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i];
+        if ((result as unknown as { isFinal: boolean }).isFinal) {
+          final += result[0].transcript;
+        } else {
+          interim += result[0].transcript;
+        }
+      }
+      setInput(final + interim);
+    };
+    recognition.onend = () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.start(); } catch { setListening(false); }
+      }
+    };
+    recognition.onerror = (event: Event & { error: string }) => {
+      if (event.error === "no-speech") return;
+      setListening(false);
+    };
+
+    try {
+      recognition.start();
+      console.log("[Mic] recognition.start() called successfully");
+      setListening(true);
+    } catch (e) {
+      console.error("[Mic] recognition.start() threw:", e);
+    }
+  }, [listening]);
 
   // If logged in with an active session, redirect to /main
   useEffect(() => {
@@ -73,7 +148,7 @@ export default function Home() {
     const value = input.trim();
     if (!value) return;
 
-    const isAddr = looksLikeAddress(value);
+    const isAddr = looksLikePureAddress(value);
 
     // If not logged in, show login modal before proceeding
     const loggedIn = sessionStorage.getItem("fs_logged_in");
@@ -124,39 +199,60 @@ export default function Home() {
         <Image
           src="/logo-v3.png"
           alt="Fire Shield"
-          width={600}
-          height={600}
-          className="w-48 md:w-64 h-auto"
+          width={1200}
+          height={1200}
+          className="w-[320px] md:w-[480px] h-auto"
           priority
         />
 
         {/* Prompt area with helper text */}
         <form onSubmit={handleSubmit} className="w-full">
           <div className="bg-surface-container-lowest p-4 md:p-6 rounded-2xl shadow-[0_24px_48px_-12px_rgba(27,28,26,0.08)] ring-1 ring-outline-variant/15 space-y-4">
-            {/* Input row */}
-            <div className="flex flex-col md:flex-row items-stretch gap-2">
-              <div className="flex-1 relative flex items-center">
-                <svg className="absolute left-4 w-5 h-5 text-outline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask a question or enter your address..."
-                  className="w-full pl-12 pr-4 py-4 rounded-xl border-none bg-surface-container-low focus:ring-2 focus:ring-primary text-on-surface placeholder:text-outline/60 font-body text-lg outline-none"
-                  disabled={loading}
-                />
-              </div>
+            {/* Input area */}
+            <div className="relative">
+              <svg className="absolute left-4 top-4 w-5 h-5 text-outline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (input.trim()) {
+                      const form = e.currentTarget.closest("form");
+                      form?.requestSubmit();
+                    }
+                  }
+                }}
+                placeholder="Ask a question or enter your address..."
+                rows={4}
+                className="w-full pl-12 pr-12 py-4 rounded-xl border-none bg-surface-container-low focus:ring-2 focus:ring-primary text-on-surface placeholder:text-outline/60 font-body text-lg outline-none resize-none"
+                disabled={loading}
+              />
               <button
-                type="submit"
-                disabled={loading || !input.trim()}
-                className="px-8 py-4 rounded-xl font-headline font-bold text-lg text-on-primary hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
+                type="button"
+                onClick={toggleMic}
+                className={`absolute right-3 top-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                  listening
+                    ? "bg-tertiary text-on-tertiary animate-pulse"
+                    : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container"
+                }`}
+                title={listening ? "Stop listening" : "Voice input"}
               >
-                {loading ? "Locating\u2026" : "Send \u2192"}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
               </button>
             </div>
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="w-full px-8 py-4 rounded-xl font-headline font-bold text-lg text-on-primary hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
+            >
+              {loading ? "Locating\u2026" : "Send \u2192"}
+            </button>
 
             {/* Helper text */}
             <div className="text-left px-2">

@@ -157,6 +157,110 @@ async def ingest_upload(
     )
 
 
+@router.post("/reingest/{corpus_source_id}")
+async def reingest_source(
+    corpus_source_id: int,
+    background_tasks: BackgroundTasks,
+):
+    """Re-ingest an existing corpus source (clears old chunks, re-runs pipeline)."""
+    async with get_db() as db:
+        cursor = await db.execute(
+            "SELECT id, title, source_url, jurisdiction, trust_tier, document_id FROM corpus_sources WHERE id = ?",
+            (corpus_source_id,),
+        )
+        source = await cursor.fetchone()
+        if not source:
+            raise HTTPException(status_code=404, detail="Corpus source not found")
+
+        source = dict(source)
+        document_id = source["document_id"]
+        if not source["source_url"]:
+            raise HTTPException(status_code=400, detail="No source URL to re-ingest from")
+
+        if document_id:
+            # Clear old chunks and versions for this document
+            # Drop FTS triggers to avoid content-mismatch errors, clean up, then restore
+            await db.execute("DROP TRIGGER IF EXISTS chunks_ad")
+            await db.execute("DROP TRIGGER IF EXISTS chunks_au")
+            await db.execute("DROP TRIGGER IF EXISTS chunks_ai")
+
+            # Get chunk rowids to remove from FTS
+            cursor2 = await db.execute(
+                "SELECT rowid FROM chunks WHERE doc_version_id IN (SELECT id FROM document_versions WHERE document_id = ?)",
+                (document_id,),
+            )
+            rowids = [r[0] for r in await cursor2.fetchall()]
+            for rid in rowids:
+                await db.execute("DELETE FROM chunks_fts WHERE rowid = ?", (rid,))
+
+            await db.execute(
+                "DELETE FROM chunks WHERE doc_version_id IN (SELECT id FROM document_versions WHERE document_id = ?)",
+                (document_id,),
+            )
+            await db.execute(
+                "DELETE FROM document_versions WHERE document_id = ?",
+                (document_id,),
+            )
+            await db.execute(
+                "UPDATE documents SET status = 'pending', chunk_count = 0 WHERE id = ?",
+                (document_id,),
+            )
+
+            # Restore FTS triggers
+            await db.execute("""
+                CREATE TRIGGER chunks_ai AFTER INSERT ON chunks BEGIN
+                    INSERT INTO chunks_fts(rowid, chunk_id, content, section_title, jurisdiction)
+                    VALUES (NEW.rowid, NEW.id, NEW.content, NEW.section_title, NEW.jurisdiction);
+                END
+            """)
+            await db.execute("""
+                CREATE TRIGGER chunks_ad AFTER DELETE ON chunks BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, chunk_id, content, section_title, jurisdiction)
+                    VALUES ('delete', OLD.rowid, OLD.id, OLD.content, OLD.section_title, OLD.jurisdiction);
+                END
+            """)
+            await db.execute("""
+                CREATE TRIGGER chunks_au AFTER UPDATE ON chunks BEGIN
+                    INSERT INTO chunks_fts(chunks_fts, rowid, chunk_id, content, section_title, jurisdiction)
+                    VALUES ('delete', OLD.rowid, OLD.id, OLD.content, OLD.section_title, OLD.jurisdiction);
+                    INSERT INTO chunks_fts(rowid, chunk_id, content, section_title, jurisdiction)
+                    VALUES (NEW.rowid, NEW.id, NEW.content, NEW.section_title, NEW.jurisdiction);
+                END
+            """)
+        else:
+            # No document record yet — create one
+            cursor = await db.execute(
+                """
+                INSERT INTO documents (title, jurisdiction, trust_tier, source_url, status, ingested_at)
+                VALUES (?, ?, ?, ?, 'pending', ?)
+                """,
+                (source["title"], source["jurisdiction"], source["trust_tier"],
+                 source["source_url"], datetime.now(timezone.utc).isoformat()),
+            )
+            document_id = cursor.lastrowid
+            await db.execute(
+                "UPDATE corpus_sources SET document_id = ? WHERE id = ?",
+                (document_id, corpus_source_id),
+            )
+
+        await db.execute(
+            "UPDATE corpus_sources SET status = 'pending' WHERE id = ?",
+            (corpus_source_id,),
+        )
+        await db.commit()
+
+    background_tasks.add_task(
+        _run_ingest_pipeline, document_id, corpus_source_id, None, source["source_url"]
+    )
+
+    return IngestResponse(
+        document_id=document_id,
+        corpus_source_id=corpus_source_id,
+        status="pending",
+        message=f"Re-ingestion started for: {source['title']}",
+    )
+
+
 @router.get("/status/{document_id}")
 async def ingest_status(document_id: int):
     """Check ingestion status for a document."""

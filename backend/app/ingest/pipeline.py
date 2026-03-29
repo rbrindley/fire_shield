@@ -93,22 +93,17 @@ async def ingest_document(
 
 
 def _extract_pdf(file_path: str) -> str:
-    """Extract text from a PDF file."""
-    try:
-        import pypdf
+    """Extract text from a PDF file using PyMuPDF (fitz)."""
+    import fitz  # PyMuPDF — already in pyproject.toml
 
-        reader = pypdf.PdfReader(file_path)
-        return "\n\n".join(page.extract_text() or "" for page in reader.pages)
-    except ImportError:
-        pass
-
-    try:
-        from pdfminer.high_level import extract_text
-        return extract_text(file_path)
-    except ImportError:
-        pass
-
-    raise RuntimeError("No PDF extraction library available. Install pypdf or pdfminer.six.")
+    doc = fitz.open(file_path)
+    pages = []
+    for page in doc:
+        text = page.get_text()
+        if text.strip():
+            pages.append(text)
+    doc.close()
+    return "\n\n".join(pages)
 
 
 async def _fetch_url_text(url: str) -> str:
@@ -217,6 +212,20 @@ async def _index_qdrant(chunks: list[dict], jurisdiction: str, trust_tier: int) 
         embeddings = await embedder.embed(texts)
 
         client = QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port)
+
+        # Ensure collection exists (lazy init)
+        from qdrant_client.models import Distance, VectorParams
+
+        collection_names = [c.name for c in client.get_collections().collections]
+        if settings.qdrant_collection not in collection_names:
+            client.create_collection(
+                collection_name=settings.qdrant_collection,
+                vectors_config=VectorParams(
+                    size=len(embeddings[0]),
+                    distance=Distance.COSINE,
+                ),
+            )
+            logger.info("Created Qdrant collection '%s'", settings.qdrant_collection)
 
         points = [
             PointStruct(
