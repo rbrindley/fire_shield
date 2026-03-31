@@ -40,6 +40,24 @@ _demo_sessions: dict[str, float] = {}  # token -> expiry timestamp
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown."""
     await init_db()
+
+    # Auto-sync plant database if empty (handles ephemeral Railway deploys)
+    try:
+        from app.config.database import get_db
+        async with get_db() as db:
+            cursor = await db.execute("SELECT COUNT(*) FROM plants")
+            count = (await cursor.fetchone())[0]
+        if count == 0:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info("Plant database empty — running auto-sync from LWF API...")
+            from app.plant.adapter import sync_lwf_plants
+            result = await sync_lwf_plants()
+            logger.info("Auto-sync complete: %s", result)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Plant auto-sync failed: %s", e)
+
     yield
 
 
