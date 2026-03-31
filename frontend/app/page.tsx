@@ -49,6 +49,10 @@ export default function Home() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: "address"; value: string } | { type: "question"; value: string } | null>(null);
   const [listening, setListening] = useState(false);
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
   const toggleMic = useCallback(() => {
@@ -165,17 +169,53 @@ export default function Home() {
     }
   }
 
-  async function handleLoginModalChoice(choice: "login" | "guest") {
-    if (choice === "login") {
-      // Fake test user login: set logged-in flag
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoginError(null);
+    setLoginLoading(true);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
+    try {
+      const res = await fetch(`${apiUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username: loginUsername, password: loginPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLoginError(data.detail || "Login failed");
+        setLoginLoading(false);
+        return;
+      }
+      // Store token for API calls
       sessionStorage.setItem("fs_logged_in", "true");
-    }
-    setShowLoginModal(false);
+      if (data.token) sessionStorage.setItem("fs_token", data.token);
+      setShowLoginModal(false);
+      setLoginUsername("");
+      setLoginPassword("");
 
-    // Continue with the pending action
+      // Continue with the pending action
+      if (pendingAction) {
+        if (pendingAction.type === "address") {
+          await resolveAndNavigate(pendingAction.value);
+        } else {
+          router.push(`/main?q=${encodeURIComponent(pendingAction.value)}`);
+        }
+        setPendingAction(null);
+      }
+    } catch {
+      setLoginError("Connection failed. Try again.");
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  function handleGuestContinue() {
+    setShowLoginModal(false);
+    // Guests can browse but won't be able to use chat (query endpoint requires auth)
     if (pendingAction) {
       if (pendingAction.type === "address") {
-        await resolveAndNavigate(pendingAction.value);
+        resolveAndNavigate(pendingAction.value);
       } else {
         router.push(`/main?q=${encodeURIComponent(pendingAction.value)}`);
       }
@@ -189,21 +229,23 @@ export default function Home() {
       <div className="pointer-events-none absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-secondary-container opacity-20 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-primary-container opacity-30 blur-[100px]" />
 
-      <div className="relative flex flex-col items-center space-y-8 max-w-2xl w-full text-center">
+      <div className="relative flex flex-col items-center max-w-2xl w-full text-center">
         {/* Headline above logo */}
         <p className="text-sm md:text-base text-on-surface-variant font-headline font-semibold tracking-wide uppercase">
           AI Powered Fire Protection
         </p>
 
-        {/* V3 Logo — large */}
-        <Image
-          src="/logo-v3.png"
-          alt="Fire Shield"
-          width={1200}
-          height={1200}
-          className="w-[480px] md:w-[720px] h-auto"
-          priority
-        />
+        {/* V3 Logo — large, negative margins to crop built-in padding in image */}
+        <div className="overflow-hidden -my-8 md:-my-12">
+          <Image
+            src="/logo-v3.png"
+            alt="Fire Shield"
+            width={1200}
+            height={1200}
+            className="w-[720px] md:w-[1080px] max-w-[90vw] h-auto"
+            priority
+          />
+        </div>
 
         {/* Prompt area with helper text */}
         <form onSubmit={handleSubmit} className="w-full">
@@ -293,29 +335,61 @@ export default function Home() {
               </div>
               <h2 className="font-headline font-bold text-on-surface text-xl">Welcome to Fire Shield</h2>
               <p className="text-sm text-on-surface-variant font-body leading-relaxed">
-                Log in to remember and resume your conversation next time.
+                Log in to access the wildfire advisor.
               </p>
             </div>
 
-            <div className="space-y-3">
+            <form onSubmit={handleLogin} className="space-y-3">
+              <input
+                type="text"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                placeholder="Username"
+                autoComplete="username"
+                className="w-full px-4 py-3 rounded-xl bg-surface-container-low text-on-surface text-sm font-body placeholder:text-outline/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="Password"
+                autoComplete="current-password"
+                className="w-full px-4 py-3 rounded-xl bg-surface-container-low text-on-surface text-sm font-body placeholder:text-outline/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              {loginError && (
+                <div className="space-y-2 text-center">
+                  <p className="text-xs text-tertiary font-body">{loginError}</p>
+                  <button
+                    type="button"
+                    onClick={() => { setLoginError(null); setLoginPassword(""); }}
+                    className="text-xs text-primary underline underline-offset-2 font-body hover:opacity-80"
+                  >
+                    Try again
+                  </button>
+                  <p className="text-xs text-on-surface-variant font-body">
+                    or contact Richard Brindley for access
+                  </p>
+                </div>
+              )}
+              {!loginError && (
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="w-full px-6 py-3.5 rounded-xl font-headline font-bold text-on-primary hover:opacity-90 transition-all text-sm disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
+                >
+                  {loginLoading ? "Logging in..." : "Log In"}
+                </button>
+              )}
+              <p className="text-xs text-red-600 text-center font-body">*Login Required for Testing</p>
               <button
-                onClick={() => handleLoginModalChoice("login")}
-                className="w-full px-6 py-3.5 rounded-xl font-headline font-bold text-on-primary hover:opacity-90 transition-all text-sm"
-                style={{ background: "linear-gradient(135deg, #795900 0%, #d4a017 100%)" }}
-              >
-                Log In
-              </button>
-              <button
-                onClick={() => handleLoginModalChoice("guest")}
-                className="w-full px-6 py-3.5 rounded-xl font-headline font-medium text-on-surface-variant bg-surface-container-low hover:bg-surface-container-high transition-colors text-sm"
+                type="button"
+                disabled
+                className="w-full px-6 py-3.5 rounded-xl font-headline font-medium text-on-surface-variant/40 bg-surface-container-low cursor-not-allowed text-sm"
               >
                 Continue as Guest
               </button>
-            </div>
-
-            <p className="text-xs text-outline text-center font-body">
-              Guest sessions are not saved between visits.
-            </p>
+            </form>
           </div>
         </div>
       )}

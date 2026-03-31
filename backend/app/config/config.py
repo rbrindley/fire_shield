@@ -62,6 +62,20 @@ class Settings(BaseSettings):
     # LWF Plant API
     lwf_api_base: str = "https://lwf-api.vercel.app/api/v2"
 
+    # Demo auth (hardcoded credentials for demo)
+    demo_username: str = "fstestuser"
+    demo_password: str = "communityfireprotection"
+
+    # Rate limiting
+    query_rate_limit: int = 20  # requests per minute per IP
+    query_rate_window: int = 60  # seconds
+
+    # Auth
+    login_rate_limit_attempts: int = 5
+    login_rate_limit_window_seconds: int = 300
+    session_expire_minutes: int = 480
+    lockout_duration_minutes: int = 15
+
     # CORS - frontend origin
     cors_origins: list[str] = ["http://localhost:3100"]
 

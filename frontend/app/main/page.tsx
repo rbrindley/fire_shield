@@ -94,6 +94,11 @@ function MainInner() {
       if (ctx.jurisdiction_code) setJurisdictionCode(ctx.jurisdiction_code);
       if (ctx.area_type) setAreaType(ctx.area_type);
       if (ctx.nearest_neighbor_distance_m != null) setNeighborDistance(ctx.nearest_neighbor_distance_m);
+      // When backend resolves an address with coordinates, switch to map tab
+      if (ctx.lat && ctx.lng) {
+        setActiveTab("map");
+        setVisitedTabs((prev) => new Set(prev).add("map"));
+      }
       // Persist to sessionStorage
       const stored = sessionStorage.getItem("property");
       const existing = stored ? JSON.parse(stored) : {};
@@ -161,7 +166,7 @@ function MainInner() {
       </div>
 
       {/* Right panel — chat (hidden on mobile unless toggled) */}
-      <div className={`${chatOpen ? "fixed inset-0 z-50 bg-surface" : "hidden"} md:relative md:block md:w-[33%] md:min-w-[320px] md:max-w-[480px] flex flex-col bg-surface`}>
+      <div className={`${chatOpen ? "fixed inset-0 z-50 bg-surface" : "hidden"} md:relative md:block md:w-[40%] md:min-w-[360px] md:max-w-[600px] flex flex-col bg-surface`}>
         {/* Mobile close button */}
         <div className="md:hidden flex items-center justify-between px-4 py-2 border-b border-outline-variant/15">
           <span className="text-sm font-headline font-bold text-on-surface">Chat</span>

@@ -17,7 +17,7 @@ export default function TeachersPage() {
       </div>
 
       {/* Right panel — chat (hidden on mobile unless toggled) */}
-      <div className={`${chatOpen ? "fixed inset-0 z-50 bg-surface" : "hidden"} md:relative md:block md:w-[25%] md:min-w-[300px] md:max-w-[420px] flex flex-col bg-surface`}>
+      <div className={`${chatOpen ? "fixed inset-0 z-50 bg-surface" : "hidden"} md:relative md:block md:w-[40%] md:min-w-[360px] md:max-w-[600px] flex flex-col bg-surface`}>
         {/* Mobile close button */}
         <div className="md:hidden flex items-center justify-between px-4 py-2 border-b border-outline-variant/15">
           <span className="text-sm font-headline font-bold text-on-surface">Chat</span>

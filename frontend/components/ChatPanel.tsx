@@ -192,9 +192,14 @@ export default function ChatPanel({ initialQuestion, profileId, profile, onQuery
     }
 
     try {
+      const authToken = typeof window !== "undefined" ? sessionStorage.getItem("fs_token") : null;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+
       const res = await fetch(`${apiUrl}/api/query/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
+        credentials: "include",
         body: JSON.stringify({
           question,
           jurisdiction_code: jurisdictionCode,
@@ -206,6 +211,22 @@ export default function ChatPanel({ initialQuestion, profileId, profile, onQuery
       });
 
       console.log("[ChatPanel] fetch response status:", res.status);
+      if (res.status === 401) {
+        setMessages((prev) => [...prev, {
+          role: "assistant",
+          content: "Please log in to use the wildfire advisor. Go back to the home page and sign in.",
+        }]);
+        setLoading(false);
+        return;
+      }
+      if (res.status === 429) {
+        setMessages((prev) => [...prev, {
+          role: "assistant",
+          content: "You've sent too many messages. Please wait a minute and try again.",
+        }]);
+        setLoading(false);
+        return;
+      }
       if (!res.ok) throw new Error("Query failed");
       const data = await res.json();
       console.log("[ChatPanel] response data keys:", Object.keys(data), "answer length:", data.answer?.length, "property_context:", data.property_context);
@@ -266,6 +287,86 @@ export default function ChatPanel({ initialQuestion, profileId, profile, onQuery
     }
   }
 
+  function renderMarkdown(text: string): React.ReactNode[] {
+    // Split into lines to handle block-level markdown
+    const lines = text.split("\n");
+    const result: React.ReactNode[] = [];
+
+    for (let li = 0; li < lines.length; li++) {
+      let line = lines[li];
+
+      // --- horizontal rules
+      if (/^-{3,}$/.test(line.trim()) || /^\*{3,}$/.test(line.trim())) {
+        result.push(<hr key={`hr-${li}`} className="border-outline-variant/20 my-2" />);
+        continue;
+      }
+
+      // ### headings
+      const h3 = line.match(/^###\s+(.+)/);
+      if (h3) {
+        result.push(<p key={`h3-${li}`} className="font-headline font-bold text-on-surface mt-3 mb-1">{inlineMd(h3[1])}</p>);
+        continue;
+      }
+      const h2 = line.match(/^##\s+(.+)/);
+      if (h2) {
+        result.push(<p key={`h2-${li}`} className="font-headline font-bold text-on-surface text-base mt-3 mb-1">{inlineMd(h2[1])}</p>);
+        continue;
+      }
+      const h1 = line.match(/^#\s+(.+)/);
+      if (h1) {
+        result.push(<p key={`h1-${li}`} className="font-headline font-extrabold text-on-surface text-lg mt-3 mb-1">{inlineMd(h1[1])}</p>);
+        continue;
+      }
+
+      // - bullet lists
+      const bullet = line.match(/^[-*]\s+(.+)/);
+      if (bullet) {
+        result.push(
+          <div key={`li-${li}`} className="flex gap-2 pl-2">
+            <span className="text-secondary shrink-0">•</span>
+            <span>{inlineMd(bullet[1])}</span>
+          </div>
+        );
+        continue;
+      }
+
+      // Numbered lists
+      const numbered = line.match(/^(\d+)[.)]\s+(.+)/);
+      if (numbered) {
+        result.push(
+          <div key={`ol-${li}`} className="flex gap-2 pl-2">
+            <span className="text-on-surface-variant shrink-0">{numbered[1]}.</span>
+            <span>{inlineMd(numbered[2])}</span>
+          </div>
+        );
+        continue;
+      }
+
+      // Empty lines → small spacer
+      if (line.trim() === "") {
+        result.push(<div key={`br-${li}`} className="h-2" />);
+        continue;
+      }
+
+      // Regular text with inline formatting
+      result.push(<span key={`p-${li}`}>{inlineMd(line)}{"\n"}</span>);
+    }
+
+    return result;
+  }
+
+  function inlineMd(text: string): React.ReactNode[] {
+    // Bold and italic inline formatting
+    const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+    return parts.map((part, i) => {
+      const boldMatch = part.match(/^\*\*(.+)\*\*$/);
+      if (boldMatch) return <strong key={i} className="font-semibold">{boldMatch[1]}</strong>;
+      const italicMatch = part.match(/^\*(.+)\*$/);
+      if (italicMatch) return <em key={i}>{italicMatch[1]}</em>;
+      return <span key={i}>{part}</span>;
+    });
+  }
+
   function renderAnswer(text: string, citations: Citation[] = []) {
     // Split on citations and URLs
     const parts = text.split(/(\[\d+\]|https?:\/\/[^\s)\]]+)/g);
@@ -319,7 +420,7 @@ export default function ChatPanel({ initialQuestion, profileId, profile, onQuery
           </a>
         );
       }
-      return <span key={i}>{part}</span>;
+      return <span key={i}>{renderMarkdown(part)}</span>;
     });
   }
 
@@ -463,7 +564,7 @@ export default function ChatPanel({ initialQuestion, profileId, profile, onQuery
                   }
                 }}
                 placeholder="Ask about vent screening, plants, grants, local code\u2026"
-                rows={3}
+                rows={5}
                 className="w-full px-4 py-3 pr-10 rounded-xl bg-surface-container-low text-on-surface placeholder:text-outline/60 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-body resize-none"
                 disabled={loading}
               />

@@ -304,7 +304,7 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
         <div className="flex-1 overflow-y-auto">
           {selectedLayer === null ? (
             <div className="flex flex-col items-center justify-center text-center text-outline px-4 py-8">
-              <p className="text-sm font-body">Select a zone above to see prioritized actions</p>
+              <p className="text-sm font-body text-primary">Click on a zone above to see prioritized actions</p>
             </div>
           ) : loadingZones ? (
             <div className="p-4 text-on-surface-variant text-sm font-body">Loading actions\u2026</div>

@@ -2,26 +2,31 @@ import Image from "next/image";
 
 export default function AboutPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-16 space-y-12">
-      <header className="text-center space-y-3">
-        <h1 className="text-4xl font-headline font-extrabold text-on-surface">
-          About Fire Shield
-        </h1>
-        <p className="text-lg text-on-surface-variant font-body max-w-2xl mx-auto leading-relaxed">
-          Protect. Plant. Prepare.
-        </p>
-      </header>
-
-      <div className="rounded-xl overflow-hidden shadow-[0_4px_24px_rgba(27,28,26,0.06)]">
+    <div className="space-y-0">
+      {/* Full-width hero image — crop bottom whitespace built into image */}
+      <div className="w-full overflow-hidden" style={{ marginBottom: "-22%" }}>
         <Image
-          src="/about-fire-shield.png"
+          src="/about-fire-shield-v3.png"
           alt="Fire Shield — Shared Knowledge, Sustainable Funding, and Community Engagement"
-          width={1200}
-          height={600}
+          width={2400}
+          height={800}
           className="w-full h-auto"
           priority
         />
       </div>
+
+      {/* Logo below image */}
+      <div className="text-center pt-4 pb-8">
+        <Image
+          src="/logo-v4.png"
+          alt="Fire Shield"
+          width={1200}
+          height={1200}
+          className="w-[280px] md:w-[400px] h-auto mx-auto"
+        />
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 space-y-12">
 
       <div className="grid gap-8 sm:grid-cols-3">
         <div className="space-y-2">
@@ -88,6 +93,7 @@ export default function AboutPage() {
           </a>
         </p>
       </footer>
+      </div>
     </div>
   );
 }

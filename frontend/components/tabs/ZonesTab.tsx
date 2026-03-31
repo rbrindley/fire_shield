@@ -33,7 +33,7 @@ export default function ZonesTab({ jurisdictionCode }: ZonesTabProps) {
 
   useEffect(() => {
     const jc = jurisdictionCode ?? "jackson_county";
-    fetch(`${apiUrl}/api/zones/actions?jurisdiction_code=${jc}`)
+    fetch(`${apiUrl}/api/zones/?jurisdiction=${jc}`)
       .then((r) => r.json())
       .then((data) => setLayers(data.layers ?? []))
       .catch(() => setLayers([]))

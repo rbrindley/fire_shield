@@ -140,8 +140,11 @@ export default function BuildTab() {
       <section className="space-y-3">
         <h3 className="font-headline font-bold text-on-surface text-base flex items-center gap-2">
           <span className="w-6 h-6 rounded-full bg-primary-container text-on-primary-container text-xs font-bold flex items-center justify-center">2</span>
-          Connect an Agent to Fire Shield
+          Give an AI Access to Fire Shield&apos;s Data
         </h3>
+        <p className="text-sm text-on-surface-variant font-body leading-relaxed">
+          Pick <strong>one</strong> of these three options. Each gives an AI the same Fire Shield knowledge &mdash; they differ in setup time and what the AI can do.
+        </p>
 
         {/* Path A */}
         <details className="group border border-outline-variant/15 rounded-xl overflow-hidden" open>
@@ -149,23 +152,26 @@ export default function BuildTab() {
             <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold flex items-center justify-center">A</span>
               <span className="font-headline font-semibold text-on-surface text-sm">Copy &amp; Paste</span>
-              <span className="text-xs text-on-surface-variant">No tools, no code &middot; 2 minutes</span>
+              <span className="text-xs text-on-surface-variant">Easiest &middot; No tools, no code &middot; 2 minutes</span>
             </div>
             <span className="text-outline text-sm group-open:rotate-90 transition-transform">&rsaquo;</span>
           </summary>
           <div className="px-4 py-3 border-t border-outline-variant/15 space-y-3">
+            <p className="text-sm text-on-surface-variant font-body leading-relaxed">
+              Dump Fire Shield&apos;s entire knowledge base into any AI chat. The AI instantly knows everything about fire-resistant plants, zone actions, and local codes.
+            </p>
             <ol className="text-sm text-on-surface-variant font-body leading-relaxed space-y-1.5 list-decimal list-inside">
-              <li>Go to <a href="/api/llms-full" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">llms-full.txt</a> and copy all the content.</li>
+              <li>Open <a href="/api/llms-full" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Fire Shield&apos;s full knowledge base</a> and copy all the content.</li>
               <li>Open <a href="https://claude.ai" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">claude.ai</a> (or ChatGPT, or any AI chat).</li>
               <li>Paste the content into a new conversation.</li>
-              <li>Tell the AI what to build. It has all of Fire Shield&apos;s data.</li>
+              <li>Ask a question or tell the AI what to build &mdash; it now has all of Fire Shield&apos;s data.</li>
             </ol>
             <div className="flex items-center gap-2 bg-surface-container-low rounded-lg px-3 py-2">
               <code className="text-xs text-on-surface flex-1 truncate">{llmsFullUrl}</code>
               <CopyButton text={llmsFullUrl} label="Copy URL" />
             </div>
             <p className="text-xs text-on-surface-variant font-body">
-              <strong>Limitation:</strong> The AI has a snapshot &mdash; it can&apos;t look up new plants or check live weather. For most classroom projects, this is more than enough.
+              <strong>Limitation:</strong> The AI has a snapshot &mdash; it can&apos;t look up new plants or check live data. For most classroom projects, this is more than enough.
             </p>
           </div>
         </details>
@@ -176,13 +182,13 @@ export default function BuildTab() {
             <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold flex items-center justify-center">B</span>
               <span className="font-headline font-semibold text-on-surface text-sm">Connect via MCP</span>
-              <span className="text-xs text-on-surface-variant">Real tools, no code &middot; 10 minutes</span>
+              <span className="text-xs text-on-surface-variant">Live tools, no code &middot; 10 minutes</span>
             </div>
             <span className="text-outline text-sm group-open:rotate-90 transition-transform">&rsaquo;</span>
           </summary>
           <div className="px-4 py-3 border-t border-outline-variant/15 space-y-3">
             <p className="text-sm text-on-surface-variant font-body leading-relaxed">
-              Connect Claude Desktop to Fire Shield&apos;s live tools so the AI can search the plant database and get zone recommendations on demand.
+              Connect Claude Desktop to Fire Shield&apos;s live tools. Unlike copy &amp; paste, the AI can search for plants and get zone recommendations in real time.
             </p>
             <ol className="text-sm text-on-surface-variant font-body leading-relaxed space-y-1.5 list-decimal list-inside">
               <li>Download <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Claude Desktop</a>.</li>
@@ -203,13 +209,13 @@ export default function BuildTab() {
             <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold flex items-center justify-center">C</span>
               <span className="font-headline font-semibold text-on-surface text-sm">Call the REST API</span>
-              <span className="text-xs text-on-surface-variant">Code required &middot; for app builders</span>
+              <span className="text-xs text-on-surface-variant">Most powerful &middot; Code required &middot; For app builders</span>
             </div>
             <span className="text-outline text-sm group-open:rotate-90 transition-transform">&rsaquo;</span>
           </summary>
           <div className="px-4 py-3 border-t border-outline-variant/15 space-y-3">
             <p className="text-sm text-on-surface-variant font-body leading-relaxed">
-              For students comfortable with code. Call these endpoints from any language.
+              For students comfortable with code. Call Fire Shield&apos;s API directly from any language to build your own app or integration.
             </p>
             <div className="space-y-3">
               <div>
