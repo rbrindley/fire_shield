@@ -93,18 +93,8 @@ async def query(request: QueryRequest):
     chunks = await retrieve_chunks(request.question, jurisdiction_chain)
     retrieval_time_ms = int((time.time() - retrieval_start) * 1000)
 
-    if not chunks:
-        return QueryResponse(
-            answer="No relevant guidance found for your question. Try rephrasing, or ask your local fire department.",
-            citations=[],
-            profile_used=request.profile,
-            retrieval_time_ms=retrieval_time_ms,
-            generation_time_ms=0,
-            total_time_ms=int((time.time() - start_time) * 1000),
-        )
-
-    # Reranking
-    reranked_chunks = await rerank_chunks(request.question, chunks)
+    # Reranking (skip if no chunks — LLM will use zone actions as fallback)
+    reranked_chunks = await rerank_chunks(request.question, chunks) if chunks else []
 
     # Load conversation memory if property profile provided
     memory_context = None

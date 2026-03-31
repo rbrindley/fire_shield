@@ -105,12 +105,18 @@ async def generate_answer(
             + "\n"
         )
 
-    source_constraint = (
-        "For wildfire-specific questions, answer using the provided source chunks and cite them. "
-        "For questions about teaching, AI agents, coding, or the Fire Shield app itself, use your general knowledge and the app context in your instructions."
-        if profile == "teacher"
-        else "Answer questions using ONLY the provided source chunks."
-    )
+    if profile == "teacher":
+        source_constraint = (
+            "For wildfire-specific questions, answer using the provided source chunks and cite them. "
+            "For questions about teaching, AI agents, coding, or the Fire Shield app itself, use your general knowledge and the app context in your instructions."
+        )
+    elif not chunks:
+        source_constraint = (
+            "No source documents are available. Use the zone action framework and your general wildfire safety knowledge to help the user. "
+            "Note that you cannot cite specific sources. Still classify intent and extract any address mentioned."
+        )
+    else:
+        source_constraint = "Answer questions using ONLY the provided source chunks."
 
     system_prompt = WILDFIRE_SYSTEM_PROMPT.format(
         source_constraint=source_constraint,
