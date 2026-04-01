@@ -1,3 +1,6 @@
+# Corpus source registry (local reference, not deployed)
+backend/corpus_sources.md
+
 # Python
 __pycache__/
 *.py[cod]

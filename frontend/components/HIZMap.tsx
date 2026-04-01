@@ -134,7 +134,7 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
         maxNativeZoom: 19,
       });
 
-      streets.addTo(map);
+      satellite.addTo(map);
       L.control.layers({ "Street": streets, "Satellite": satellite }, {}, { position: "topright" }).addTo(map);
 
       // Property marker

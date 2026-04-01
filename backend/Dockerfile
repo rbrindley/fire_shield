@@ -8,9 +8,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdal-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps
+# Install Python deps from hash-pinned lockfile
+COPY requirements.lock .
+RUN pip install --no-cache-dir --no-deps --require-hashes -r requirements.lock
+
+# Copy project metadata (needed for package to be importable)
 COPY pyproject.toml .
-RUN pip install --no-cache-dir -e .
 
 # Copy app source
 COPY app/ app/

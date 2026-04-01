@@ -105,20 +105,42 @@ export default function Home() {
     }
   }, [listening]);
 
-  // If logged in with an active session, redirect to /main
+  // Validate session on mount — clear stale tokens silently
   useEffect(() => {
     const loggedIn = sessionStorage.getItem("fs_logged_in");
-    const property = sessionStorage.getItem("property");
-    if (loggedIn && property) {
-      try {
-        const p = JSON.parse(property);
-        if (p.property_profile_id) {
-          router.replace(`/main?profile=${p.property_profile_id}`);
+    if (!loggedIn) return;
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8100";
+    const token = sessionStorage.getItem("fs_token");
+    fetch(`${apiUrl}/api/auth/check`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "include",
+    })
+      .then((res) => {
+        if (!res.ok) {
+          // Token is stale (backend redeployed) — clear silently
+          sessionStorage.removeItem("fs_logged_in");
+          sessionStorage.removeItem("fs_token");
+          return;
         }
-      } catch {
-        // ignore
-      }
-    }
+        // Session valid — redirect if property is set
+        const property = sessionStorage.getItem("property");
+        if (property) {
+          try {
+            const p = JSON.parse(property);
+            if (p.property_profile_id) {
+              router.replace(`/main?profile=${p.property_profile_id}`);
+            }
+          } catch {
+            // ignore
+          }
+        }
+      })
+      .catch(() => {
+        // Network error — clear stale session to be safe
+        sessionStorage.removeItem("fs_logged_in");
+        sessionStorage.removeItem("fs_token");
+      });
   }, [router]);
 
   async function resolveAndNavigate(value: string) {
