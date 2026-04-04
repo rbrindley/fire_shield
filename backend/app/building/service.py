@@ -112,15 +112,29 @@ async def _query_overpass(lat: float, lng: float) -> dict | None:
             if not ways:
                 return None
 
-            # Take the first building way
-            way = ways[0]
-            coords = [nodes[nid] for nid in way.get("nodes", []) if nid in nodes]
-            if len(coords) < 4:
+            # Pick the nearest building by centroid distance
+            best_way = None
+            best_dist = float("inf")
+            for w in ways:
+                w_coords = [nodes[nid] for nid in w.get("nodes", []) if nid in nodes]
+                if len(w_coords) < 4:
+                    continue
+                cx = sum(c[0] for c in w_coords) / len(w_coords)
+                cy = sum(c[1] for c in w_coords) / len(w_coords)
+                d = (cx - lng) ** 2 + (cy - lat) ** 2
+                if d < best_dist:
+                    best_dist = d
+                    best_way = w_coords
+
+            if not best_way:
                 return None
 
+            coords = best_way
             # Ensure ring is closed
             if coords[0] != coords[-1]:
                 coords.append(coords[0])
+
+            dist_m = best_dist ** 0.5 * 111_320  # rough deg-to-meters
 
             geojson = {
                 "type": "Polygon",
@@ -130,7 +144,7 @@ async def _query_overpass(lat: float, lng: float) -> dict | None:
             return {
                 "geojson": geojson,
                 "source": "openstreetmap",
-                "distance_m": 0,
+                "distance_m": round(dist_m, 1),
             }
 
     except httpx.TimeoutException:

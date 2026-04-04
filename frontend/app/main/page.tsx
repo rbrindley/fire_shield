@@ -145,7 +145,7 @@ function MainInner() {
 
         {/* Resource list */}
         {resourceLinks.length > 0 && (
-          <div className="px-4 py-3 border-b border-outline-variant/15 max-h-[25%] overflow-y-auto shrink-0">
+          <div className="px-4 py-3 border-b border-outline-variant/15 max-h-[25%] overflow-y-auto shrink-0 mb-2">
             <ResourceList links={resourceLinks} onLinkClick={handleResourceLinkClick} />
           </div>
         )}

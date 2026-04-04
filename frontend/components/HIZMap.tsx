@@ -57,6 +57,7 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<unknown>(null);
   const zoneLayersRef = useRef<unknown[]>([]);
+  const markerRef = useRef<unknown>(null);
   const [selectedLayer, setSelectedLayer] = useState<number | null>(null);
   const [zoneData, setZoneData] = useState<ZoneData | null>(null);
   const [loadingZones, setLoadingZones] = useState(true);
@@ -136,12 +137,6 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
 
       satellite.addTo(map);
       L.control.layers({ "Street": streets, "Satellite": satellite }, {}, { position: "topright" }).addTo(map);
-
-      // Property marker
-      L.marker([lat, lng])
-        .addTo(map)
-        .bindPopup(`<strong>Your Property</strong><br/>${jurisdictionDisplay}`)
-        .openPopup();
     });
 
     return () => {
@@ -160,26 +155,45 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Clear old zone layers
+    // Clear old zone layers + marker
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     zoneLayersRef.current.forEach((l) => (map as any).removeLayer(l));
     zoneLayersRef.current = [];
+    if (markerRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (map as any).removeLayer(markerRef.current);
+      markerRef.current = null;
+    }
 
     Promise.all([import("leaflet"), import("@turf/turf")]).then(([L, turf]) => {
-      const geocodedPoint = turf.point([lng, lat]);
+      // Use footprint centroid as the single center point if a building was found,
+      // otherwise fall back to the geocoded lat/lng. This ensures marker, rings,
+      // and footprint all align on the same property.
+      let centerLat = lat;
+      let centerLng = lng;
 
-      // Check if footprint is close enough to geocoded point (within 50m)
-      let useFootprint = false;
       if (footprintData.footprint) {
         const fpCentroid = turf.centroid(turf.feature(footprintData.footprint));
-        const dist = turf.distance(geocodedPoint, fpCentroid, { units: "meters" });
-        useFootprint = dist < 50;
+        centerLng = fpCentroid.geometry.coordinates[0];
+        centerLat = fpCentroid.geometry.coordinates[1];
       }
 
-      // Zone rings always center on the geocoded point
-      const ringBase = useFootprint
-        ? turf.feature(footprintData.footprint!)
-        : geocodedPoint;
+      // Place marker at the unified center
+      const marker = L.marker([centerLat, centerLng])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .addTo(map as any)
+        .bindPopup(`<strong>Your Property</strong><br/>${jurisdictionDisplay}`)
+        .openPopup();
+      markerRef.current = marker;
+
+      // Pan map to the center point
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (map as any).setView([centerLat, centerLng], 19);
+
+      // Base geometry for rings: footprint polygon or center point
+      const ringBase = footprintData.footprint
+        ? turf.feature(footprintData.footprint)
+        : turf.point([centerLng, centerLat]);
 
       // Draw zone rings (outermost first so inner rings layer on top)
       [...ZONE_RINGS].reverse().forEach((ring, i) => {
@@ -213,8 +227,8 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
         zoneLayersRef.current.push(geoLayer);
       });
 
-      // Draw the building footprint itself (Layer 0 visual) — only if close to geocoded point
-      if (footprintData.footprint && useFootprint) {
+      // Draw the building footprint itself (Layer 0 visual)
+      if (footprintData.footprint) {
         const footprintLayer = L.geoJSON(footprintData.footprint as GeoJSON.GeoJsonObject, {
           style: {
             color: "#1e293b",
