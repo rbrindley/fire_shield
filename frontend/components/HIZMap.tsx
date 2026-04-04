@@ -166,15 +166,25 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
     zoneLayersRef.current = [];
 
     Promise.all([import("leaflet"), import("@turf/turf")]).then(([L, turf]) => {
-      // Base geometry: building polygon or point
-      const baseFeature = footprintData.footprint
-        ? turf.feature(footprintData.footprint)
-        : turf.point([lng, lat]);
+      const geocodedPoint = turf.point([lng, lat]);
+
+      // Check if footprint is close enough to geocoded point (within 50m)
+      let useFootprint = false;
+      if (footprintData.footprint) {
+        const fpCentroid = turf.centroid(turf.feature(footprintData.footprint));
+        const dist = turf.distance(geocodedPoint, fpCentroid, { units: "meters" });
+        useFootprint = dist < 50;
+      }
+
+      // Zone rings always center on the geocoded point
+      const ringBase = useFootprint
+        ? turf.feature(footprintData.footprint!)
+        : geocodedPoint;
 
       // Draw zone rings (outermost first so inner rings layer on top)
       [...ZONE_RINGS].reverse().forEach((ring, i) => {
         const layerIndex = ZONE_RINGS.length - 1 - i;
-        const buffered = turf.buffer(baseFeature, ring.meters, { units: "meters" });
+        const buffered = turf.buffer(ringBase, ring.meters, { units: "meters" });
         if (!buffered) return;
 
         const geoLayer = L.geoJSON(buffered as GeoJSON.GeoJsonObject, {
@@ -203,8 +213,8 @@ export default function HIZMap({ lat, lng, jurisdictionDisplay, profileId }: HIZ
         zoneLayersRef.current.push(geoLayer);
       });
 
-      // Draw the building footprint itself (Layer 0 visual)
-      if (footprintData.footprint) {
+      // Draw the building footprint itself (Layer 0 visual) — only if close to geocoded point
+      if (footprintData.footprint && useFootprint) {
         const footprintLayer = L.geoJSON(footprintData.footprint as GeoJSON.GeoJsonObject, {
           style: {
             color: "#1e293b",

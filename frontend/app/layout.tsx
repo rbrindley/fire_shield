@@ -29,16 +29,6 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-surface text-on-surface font-body">
         <Nav />
         <main className="flex-1">{children}</main>
-        <footer className="bg-surface-container-low py-6 text-center text-xs text-on-surface-variant">
-          Fire Shield — Open source wildfire prevention for the Rogue Valley.{" "}
-          <a
-            href="/llms.txt"
-            className="underline hover:text-on-surface"
-            target="_blank"
-          >
-            llms.txt
-          </a>
-        </footer>
       </body>
     </html>
   );
