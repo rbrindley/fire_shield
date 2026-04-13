@@ -15,7 +15,7 @@ dependencies = [
     "pydantic-settings>=2.1.0",
 
     # Database
-    "aiosqlite>=0.20.0",
+    "aiosqlite>=0.22.1",
 
     # PDF extraction
     "PyMuPDF>=1.23.0",
