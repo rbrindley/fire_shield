@@ -29,7 +29,7 @@ dependencies = [
     # LLM clients
     "httpx>=0.27.0",
     "anthropic>=0.34.0",
-    "aiohttp>=3.9.0",
+    "aiohttp>=3.13.5",
 
     # Geospatial — building footprint queries
     "geopandas>=1.0.0",
