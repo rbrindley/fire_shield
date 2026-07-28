@@ -127,7 +127,9 @@ def create_app() -> FastAPI:
 
     @app.post("/api/auth/login")
     async def demo_login(request: Request, response: Response, body: DemoLoginRequest):
-        """Simple demo login with hardcoded credentials."""
+        """Simple demo login with env-configured credentials."""
+        if not settings.demo_username or not settings.demo_password:
+            raise HTTPException(status_code=503, detail="Login not configured")
         if body.username != settings.demo_username or body.password != settings.demo_password:
             raise HTTPException(status_code=401, detail="Invalid credentials")
 

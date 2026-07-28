@@ -62,9 +62,9 @@ class Settings(BaseSettings):
     # LWF Plant API
     lwf_api_base: str = "https://lwf-api.vercel.app/api/v2"
 
-    # Demo auth (hardcoded credentials for demo)
-    demo_username: str = "fstestuser"
-    demo_password: str = "communityfireprotection"
+    # Demo auth — set via env vars (DEMO_USERNAME / DEMO_PASSWORD)
+    demo_username: str | None = None
+    demo_password: str | None = None
 
     # Rate limiting
     query_rate_limit: int = 20  # requests per minute per IP
