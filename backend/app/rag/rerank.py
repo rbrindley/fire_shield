@@ -1,26 +1,10 @@
 """BGE reranker for chunk relevance scoring with trust tier boosting."""
 
-import os
-from pathlib import Path
-
 from app.config import get_settings
 
 settings = get_settings()
 
 _reranker = None
-
-
-def _resolve_model_path(model_name: str) -> str:
-    """Resolve a HuggingFace model name to local cache path if available."""
-    hf_home = os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface"))
-    cache_dir = Path(hf_home) / "hub" / f"models--{model_name.replace('/', '--')}" / "snapshots"
-
-    if cache_dir.exists():
-        snapshots = list(cache_dir.iterdir())
-        if snapshots:
-            return str(sorted(snapshots)[-1])
-
-    return model_name
 
 
 def get_reranker():
@@ -29,8 +13,7 @@ def get_reranker():
     if _reranker is None:
         from sentence_transformers import CrossEncoder
 
-        model_path = _resolve_model_path(settings.reranker_model)
-        _reranker = CrossEncoder(model_path, device=settings.reranker_device)
+        _reranker = CrossEncoder(settings.reranker_model, device=settings.reranker_device)
     return _reranker
 
 

@@ -1,8 +1,6 @@
 """Dynamic GPU/CPU embedding with BGE-large."""
 
 import logging
-import os
-from pathlib import Path
 
 from app.config import get_settings
 
@@ -10,25 +8,11 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 
-def _resolve_model_path(model_name: str) -> str:
-    """Resolve a HuggingFace model name to local cache path if available."""
-    hf_home = os.environ.get("HF_HOME", os.path.expanduser("~/.cache/huggingface"))
-    cache_dir = Path(hf_home) / "hub" / f"models--{model_name.replace('/', '--')}" / "snapshots"
-
-    if cache_dir.exists():
-        snapshots = list(cache_dir.iterdir())
-        if snapshots:
-            return str(sorted(snapshots)[-1])
-
-    return model_name
-
-
 class DynamicEmbedder:
     """Embedding model with dynamic GPU/CPU selection."""
 
     def __init__(self):
         self.model_name = settings.embedding_model
-        self.model_path = _resolve_model_path(self.model_name)
         self.device_config = settings.embedding_device
         self.vram_threshold_mb = settings.vram_threshold_mb
         self.model = None
@@ -59,7 +43,7 @@ class DynamicEmbedder:
             if self.current_device and self.current_device != device:
                 logger.info("Embedding device switch: %s → %s", self.current_device, device)
             from sentence_transformers import SentenceTransformer
-            self.model = SentenceTransformer(self.model_path, device=device)
+            self.model = SentenceTransformer(self.model_name, device=device)
             self.current_device = device
 
     async def embed(self, texts: list[str]) -> list[list[float]]:

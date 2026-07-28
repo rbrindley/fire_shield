@@ -142,7 +142,7 @@ check_deps() {
   # Check for geo deps (geopandas) — needed for building footprints
   if ! "$ROOT_DIR/backend/.venv/bin/python" -c "import geopandas" 2>/dev/null; then
     warn "geopandas not installed — installing geo dependencies..."
-    "$ROOT_DIR/backend/.venv/bin/pip" install -q geopandas pyogrio 2>&1 | tail -1
+    uv pip install -q --python "$ROOT_DIR/backend/.venv/bin/python" geopandas pyogrio 2>&1 | tail -1
     ok "Installed geopandas + pyogrio"
   fi
 
